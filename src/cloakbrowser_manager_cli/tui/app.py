@@ -28,8 +28,11 @@ from cloakbrowser_manager_cli.tui.screens.create_profile import CreateProfileScr
 from cloakbrowser_manager_cli.tui.screens.edit_profile import EditProfileScreen
 from cloakbrowser_manager_cli.tui.screens.advanced_profile import AdvancedProfileScreen
 from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
+from cloakbrowser_manager_cli.tui.screens.clone_profile import CloneProfileScreen
 from cloakbrowser_manager_cli.tui.screens.confirm import ConfirmScreen
 from cloakbrowser_manager_cli.tui.screens.code_snippet import CodeSnippetScreen
+from cloakbrowser_manager_cli.tui.screens.help import HelpScreen
+from cloakbrowser_manager_cli.tui.screens.stealth_test import StealthTestScreen
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +96,10 @@ class DashboardScreen(Screen):
         Binding("e", "edit_profile", "Edit"),
         Binding("a", "advanced_profile", "Advanced"),
         Binding("d", "delete_profile", "Delete"),
+        Binding("x", "clone_profile", "Clone"),
         Binding("l", "launch_profile", "Launch"),
         Binding("s", "stop_profile", "Stop"),
+        Binding("t", "stealth_test", "Stealth"),
         Binding("c", "copy_cdp", "CDP"),
         Binding("v", "api_server", "API"),
         Binding("r", "refresh", "Refresh"),
@@ -450,6 +455,88 @@ class DashboardScreen(Screen):
 
         self.app.push_screen(ApiServerScreen(), on_done)
 
+    def action_clone_profile(self) -> None:
+        """Clone the selected profile settings without browser data."""
+        if not self._selected_profile_id:
+            self._log("No profile selected — use ↑/↓ to navigate")
+            self.notify("Select a profile first", severity="warning")
+            return
+        profile = db.get_profile(self._selected_profile_id)
+        if not profile:
+            return
+
+        def on_done(new_name: str | None):
+            if not new_name:
+                return
+            try:
+                clone_data = {
+                    k: v for k, v in profile.items()
+                    if k not in (
+                        "id", "name", "user_data_dir", "created_at", "updated_at",
+                        "status", "cdp_port", "pid", "last_launched", "fingerprint_seed",
+                    )
+                }
+                clone_data["tags"] = profile.get("tags", [])
+                clone_data["launch_args"] = profile.get("launch_args", [])
+                new_profile = db.create_profile(name=new_name, **clone_data)
+            except Exception as exc:
+                self._log(f"[red]Clone failed: {exc}[/red]")
+                self.notify("Clone failed", severity="error")
+                return
+            self._selected_profile_id = new_profile["id"]
+            self._log(f"Cloned: {profile['name']} → {new_profile['name']}")
+            self._refresh_all()
+
+        self.app.push_screen(CloneProfileScreen(profile), on_done)
+
+    def action_stealth_test(self) -> None:
+        """Run a stealth test for the selected profile."""
+        if not self._selected_profile_id:
+            self._log("No profile selected — use ↑/↓ to navigate")
+            self.notify("Select a profile first", severity="warning")
+            return
+        profile = db.get_profile(self._selected_profile_id)
+        if not profile:
+            return
+
+        def on_done(options: dict | None):
+            if not options:
+                return
+
+            async def do_test():
+                from cloakbrowser_manager_cli.cli.stealth import DEFAULT_EXTERNAL_URL, _run_one_stealth_test
+                from cloakbrowser_manager_cli.core.browser_manager import get_browser_manager
+
+                external_url = options.get("external_url") or (DEFAULT_EXTERNAL_URL if options.get("external") else None)
+                self._log(f"Running stealth test: {profile['name']}")
+                self.notify("Stealth test started", severity="information")
+                try:
+                    result = await _run_one_stealth_test(
+                        get_browser_manager(),
+                        profile,
+                        run_external=bool(external_url),
+                        external_url=external_url,
+                        keep_open=bool(options.get("keep_open")),
+                        timeout=60.0,
+                        headless=None,
+                        artifact_base=None,
+                    )
+                except Exception as exc:
+                    self._log(f"[red]Stealth test failed: {exc}[/red]")
+                    self.notify("Stealth test failed", severity="error")
+                    self._refresh_all()
+                    return
+
+                verdict = result.get("verdict", "ERROR")
+                score = result.get("score", "—")
+                self._log(f"Stealth result: {profile['name']} {verdict} score={score}")
+                self.notify(f"Stealth {verdict} ({score})", severity="information")
+                self._refresh_all()
+
+            asyncio.create_task(do_test())
+
+        self.app.push_screen(StealthTestScreen(profile), on_done)
+
     def action_delete_profile(self) -> None:
         """Delete the selected profile (with confirmation)."""
         if not self._selected_profile_id:
@@ -530,7 +617,7 @@ class DashboardScreen(Screen):
 
     def action_show_help(self) -> None:
         """Show help screen."""
-        self._log("Keybindings: n=New l=Launch s=Stop e=Edit a=Advanced v=API d=Delete c=CDP r=Refresh q=Quit")
+        self.app.push_screen(HelpScreen())
 
     def on_profile_list_highlighted(self, event: ProfileList.Highlighted) -> None:
         """Auto-select profile when cursor moves with arrows/j/k."""
