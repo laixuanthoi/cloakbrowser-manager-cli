@@ -6,6 +6,16 @@ from textual.widgets import DataTable
 from textual.message import Message
 
 
+def _truncate(value: object, width: int) -> str:
+    """Truncate text to a fixed display width using an ellipsis."""
+    text = str(value)
+    if len(text) <= width:
+        return text
+    if width <= 1:
+        return text[:width]
+    return text[:width - 1] + "…"
+
+
 class ProfileList(DataTable):
     """Scrollable list of browser profiles with live status indicators."""
 
@@ -30,8 +40,12 @@ class ProfileList(DataTable):
         self.zebra_stripes = True
 
     def on_mount(self) -> None:
-        self.add_columns("Name", "Status", "CDP")
-        self.cell_padding = 0
+        # Fixed widths keep the sidebar table aligned in narrow terminals.
+        # Sidebar is 36 cols, so keep total compact and predictable.
+        self.add_column("Name", width=16, key="name")
+        self.add_column("Status", width=9, key="status")
+        self.add_column("CDP", width=5, key="cdp")
+        self.cell_padding = 1
 
     @property
     def selected_id(self) -> str | None:
@@ -53,12 +67,18 @@ class ProfileList(DataTable):
                     "error": "\u2717",
                 }.get(p.get("status", "stopped"), "?")
 
+                status_text = {
+                    "running": "Run",
+                    "stopped": "Stop",
+                    "launching": "Start",
+                    "error": "Error",
+                }.get(p.get("status", "stopped"), p.get("status", "?"))
                 cdp = str(p.get("cdp_port")) if p.get("cdp_port") else "\u2014"
 
                 self.add_row(
-                    p["name"],
-                    f"{status_icon} {p['status']}",
-                    cdp,
+                    _truncate(p["name"], 16),
+                    f"{status_icon} {status_text}",
+                    _truncate(cdp, 5),
                     key=p["id"],
                 )
 
