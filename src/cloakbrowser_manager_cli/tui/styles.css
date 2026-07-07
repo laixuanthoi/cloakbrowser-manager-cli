@@ -1,0 +1,85 @@
+Screen {
+    layout: vertical;
+}
+
+#sidebar {
+    width: 36;
+    border-right: solid $panel;
+    background: $surface;
+}
+
+#body {
+    width: 1fr;
+    height: 1fr;
+}
+
+ProfileList {
+    height: 1fr;
+    border-bottom: solid $panel;
+}
+
+ProfileDetail {
+    height: 2fr;
+    border-bottom: solid $panel;
+    padding: 1 2;
+}
+
+LogPanel {
+    height: 10;
+}
+
+ActionBar {
+    height: 3;
+    dock: bottom;
+    padding: 0 1;
+    background: $surface-darken-1;
+}
+
+TagFilter {
+    height: 3;
+    padding: 0 1;
+}
+
+Footer {
+    background: $surface;
+}
+
+/* ── Modal Screens ─────────────────────────────────────────────────────── */
+
+#modal {
+    width: 60;
+    height: auto;
+    max-height: 90%;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+    margin: 2 4;
+}
+
+#modal-title {
+    text-align: center;
+    padding-bottom: 1;
+    border-bottom: solid $panel;
+}
+
+#modal-buttons {
+    margin-top: 1;
+    align: center middle;
+}
+
+#code-block {
+    background: $surface-darken-1;
+    padding: 1;
+    margin: 1 0;
+    border: solid $panel;
+    overflow: auto;
+}
+
+#confirm-message {
+    padding: 2;
+    text-align: center;
+}
+
+Switch {
+    margin-right: 2;
+}

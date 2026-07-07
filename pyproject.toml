@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloakbrowser-manager"
+version = "0.1.0"
+description = "CLI/TUI manager for CloakBrowser — create, manage, and launch stealth browser profiles"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+readme = "README.md"
+authors = [{name = "CloakBrowser Manager Contributors"}]
+keywords = ["cloakbrowser", "browser", "antidetect", "cli", "tui"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+]
+
+dependencies = [
+    "cloakbrowser>=0.4.0",
+    "click>=8.0,<9",
+    "pydantic>=2.0,<3",
+    "pyyaml>=6.0,<7",
+    "rich>=13.0,<14",
+    "textual>=2.0,<3",
+    "typing-extensions>=4.15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+cm = "cloakbrowser_manager_cli.cli.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = ["slow: marks tests as slow"]
+testpaths = ["tests"]
