@@ -70,6 +70,115 @@ cm status
 cm info
 ```
 
+## REST API Server
+
+The manager can also run a FastAPI REST server for local automation or for a
+small authenticated internal service. It uses the same SQLite database and core
+browser manager as the CLI/TUI.
+
+> Native mode note: this project does **not** run Docker, VNC, or noVNC. Browsers
+> launch as native OS windows (or true headless when requested), and API CDP
+> endpoints return the direct local CDP URL such as `http://127.0.0.1:5100`.
+
+### Start the server
+
+```bash
+# Localhost only (default; CORS is not enabled by default)
+cm serve
+
+# Explicit host/port
+cm serve --host 127.0.0.1 --port 8080
+
+# Require Bearer token auth for protected routes
+cm serve --auth-token "change-me"
+```
+
+OpenAPI documentation is available while the server is running:
+
+```txt
+http://127.0.0.1:8080/docs
+http://127.0.0.1:8080/openapi.json
+```
+
+`GET /api/status` and `/api/auth/*` compatibility endpoints are public. Profile,
+runtime, CDP, config, info, and stealth endpoints require auth when a token is
+configured.
+
+### Auth token usage
+
+```bash
+TOKEN="change-me"
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8080/api/profiles
+```
+
+The API does not create server-side sessions. `/api/auth/login` only validates a
+token; clients should keep sending the same `Authorization: Bearer ...` header.
+Secrets such as config license keys, profile license keys, proxy credentials, and
+API tokens are not echoed back in raw form by API responses.
+
+### curl examples
+
+Create a profile:
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/profiles \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "api-gmail-us",
+    "platform": "windows",
+    "timezone": "America/New_York",
+    "locale": "en-US",
+    "humanize": true,
+    "tags": [{"tag": "gmail"}]
+  }'
+```
+
+List profiles:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:8080/api/profiles
+```
+
+Launch a profile:
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/profiles/api-gmail-us/launch \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"url": "https://gmail.com", "headless": false}'
+```
+
+Get the direct CDP URL:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:8080/api/profiles/api-gmail-us/cdp
+# {"cdp_url":"http://127.0.0.1:5100", ...}
+```
+
+Run a stealth test:
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/profiles/api-gmail-us/stealth-test \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"headless": true, "external": false, "timeout": 60}'
+```
+
+Connect Playwright to the returned CDP URL:
+
+```python
+from playwright.sync_api import sync_playwright
+
+cdp_url = "http://127.0.0.1:5100"
+with sync_playwright() as pw:
+    browser = pw.chromium.connect_over_cdp(cdp_url)
+    page = browser.contexts[0].pages[0]
+    page.goto("https://example.com")
+```
+
 ## Command Reference
 
 ### Profile Management

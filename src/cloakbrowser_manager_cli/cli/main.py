@@ -177,5 +177,6 @@ def _register_commands() -> None:
     from cloakbrowser_manager_cli.cli import config_cmd   # noqa: F401
     from cloakbrowser_manager_cli.cli import info         # noqa: F401
     from cloakbrowser_manager_cli.cli import tui          # noqa: F401
+    from cloakbrowser_manager_cli.cli import serve        # noqa: F401
 
 _register_commands()
