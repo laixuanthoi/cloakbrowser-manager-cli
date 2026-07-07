@@ -7,6 +7,7 @@ from rich.table import Table
 from cloakbrowser_manager_cli.cli.main import cli, pass_context, CLIContext
 from cloakbrowser_manager_cli.core import database as db
 from cloakbrowser_manager_cli.core import utils
+from cloakbrowser_manager_cli.cli.profile import _safe_profile_output
 
 
 @cli.command("list")
@@ -30,7 +31,7 @@ def list_profiles(
     profiles = db.list_profiles(status=status, tag=tag, search=filter)
 
     if ctx.output.format in ("json", "yaml"):
-        ctx.output.print(profiles)
+        ctx.output.print([_safe_profile_output(p) for p in profiles])
         return
 
     console = Console()

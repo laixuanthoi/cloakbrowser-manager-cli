@@ -1,6 +1,6 @@
 # Implementation Plan — CloakBrowser Manager CLI/TUI
 
-> **How to use**: Each task references a detailed implementation spec in `IMPL/`.  
+> **How to use**: Each task references a detailed implementation spec in `impl/`.  
 > Feed the spec file to a subagent along with `SPEC.md` for full context.
 
 ## Task Dependency Graph
@@ -40,38 +40,38 @@ T17 (tests + packaging)
 
 | ID | Task | Priority | Depends On | Spec File |
 |---|---|---|---|---|
-| T01 | Project scaffolding | P0 | — | `IMPL/01-scaffolding.md` |
-| T02 | Core database module | P0 | T01 | `IMPL/02-database.md` |
-| T03 | Core models (Pydantic) | P0 | T01 | `IMPL/03-models.md` |
-| T04 | Core config module | P1 | T03 | `IMPL/04-config.md` |
-| T05 | Core browser manager | P0 | T02, T03, T07 | `IMPL/05-browser-manager.md` |
-| T06 | Core CDP manager | P0 | T03 | `IMPL/06-cdp-manager.md` |
-| T07 | Core utilities | P0 | T01 | `IMPL/07-utils.md` |
+| T01 | Project scaffolding | P0 | — | `impl/01-scaffolding.md` |
+| T02 | Core database module | P0 | T01 | `impl/02-database.md` |
+| T03 | Core models (Pydantic) | P0 | T01 | `impl/03-models.md` |
+| T04 | Core config module | P1 | T03 | `impl/04-config.md` |
+| T05 | Core browser manager | P0 | T02, T03, T07 | `impl/05-browser-manager.md` |
+| T06 | Core CDP manager | P0 | T03 | `impl/06-cdp-manager.md` |
+| T07 | Core utilities | P0 | T01 | `impl/07-utils.md` |
 
 ### PHASE 2: CLI Commands
 
 | ID | Task | Priority | Depends On | Spec File |
 |---|---|---|---|---|
-| T08 | CLI main entry + shared output formatting | P0 | T02-T07 | `IMPL/08-cli-main.md` |
-| T09 | CLI profile commands (create/list/show/edit/delete/clone) | P0 | T08 | `IMPL/09-cli-profile.md` |
-| T10 | CLI launch & stop commands | P0 | T08 | `IMPL/10-cli-launch-stop.md` |
-| T11 | CLI list & status commands | P0 | T08 | `IMPL/11-cli-list-status.md` |
-| T12 | CLI CDP commands (list/url/code/check) | P1 | T08 | `IMPL/12-cli-cdp.md` |
-| T13 | CLI config & info commands | P1 | T08 | `IMPL/13-cli-config-info.md` |
+| T08 | CLI main entry + shared output formatting | P0 | T02-T07 | `impl/08-cli-main.md` |
+| T09 | CLI profile commands (create/list/show/edit/delete/clone) | P0 | T08 | `impl/09-cli-profile.md` |
+| T10 | CLI launch & stop commands | P0 | T08 | `impl/10-cli-launch-stop.md` |
+| T11 | CLI list & status commands | P0 | T08 | `impl/11-cli-list-status.md` |
+| T12 | CLI CDP commands (list/url/code/check) | P1 | T08 | `impl/12-cli-cdp.md` |
+| T13 | CLI config & info commands | P1 | T08 | `impl/13-cli-config-info.md` |
 
 ### PHASE 3: TUI Dashboard
 
 | ID | Task | Priority | Depends On | Spec File |
 |---|---|---|---|---|
-| T14 | TUI app shell + dashboard screen + keybindings | P1 | T02-T07 | `IMPL/14-tui-app.md` |
-| T15 | TUI widgets (profile list, tag filter, detail panel, log panel) | P1 | T14 | `IMPL/15-tui-widgets.md` |
-| T16 | TUI modal screens (create, edit, confirm, code snippet) | P1 | T15 | `IMPL/16-tui-screens.md` |
+| T14 | TUI app shell + dashboard screen + keybindings | P1 | T02-T07 | `impl/14-tui-app.md` |
+| T15 | TUI widgets (profile list, tag filter, detail panel, log panel) | P1 | T14 | `impl/15-tui-widgets.md` |
+| T16 | TUI modal screens (create, edit, confirm, code snippet) | P1 | T15 | `impl/16-tui-screens.md` |
 
 ### PHASE 4: Testing & Distribution
 
 | ID | Task | Priority | Depends On | Spec File |
 |---|---|---|---|---|
-| T17 | Tests, packaging, CI/CD, docs | P1 | T09-T16 | `IMPL/17-testing-polish.md` |
+| T17 | Tests, packaging, CI/CD, docs | P1 | T09-T16 | `impl/17-testing-polish.md` |
 
 ---
 
@@ -81,7 +81,7 @@ T17 (tests + packaging)
 
 Execute tasks in dependency order. Each subagent gets:
 - `SPEC.md` (business context)
-- The task's `IMPL/` spec file (technical details)
+- The task's `impl/` spec file (technical details)
 - Read access to already-completed source files before coding
 
 ```
@@ -101,7 +101,7 @@ since they only depend on the core engine, not each other.
 Task: <task description from IMPL file>
 Context:
   - Read SPEC.md for overall vision and architecture
-  - Read IMPL/<task-id>.md for detailed implementation spec
+  - Read impl/<task-id>.md for detailed implementation spec
   - Read existing source files in src/cloakbrowser_manager_cli/ for context
   - IMPORTANT: all imports must use the package prefix "cloakbrowser_manager_cli."
 

@@ -172,7 +172,10 @@ class BrowserManager:
             launch_kwargs["env"] = {**os.environ, "DISPLAY": display}
 
         # Open URL after launch
-        open_url = overrides.get("url")
+        try:
+            open_url = utils.validate_navigation_url(overrides.get("url"))
+        except ValueError as exc:
+            raise BrowserError(str(exc)) from exc
 
         context = await cloakbrowser.launch_persistent_context_async(**launch_kwargs)
 
@@ -198,10 +201,11 @@ class BrowserManager:
             raise BrowserError(f"Profile '{profile['name']}' is not running")
 
         pid = profile.get("pid")
-        logger.info("Stopping '%s' (pid=%d)...", profile["name"], pid)
+        logger.info("Stopping '%s' (pid=%s)...", profile["name"], pid or "unknown")
 
+        context = self._contexts.pop(profile_id, None)
+        can_force_kill_pid = context is not None
         try:
-            context = self._contexts.pop(profile_id, None)
             if context and not force:
                 try:
                     await asyncio.wait_for(context.close(), timeout=10)
@@ -210,10 +214,16 @@ class BrowserManager:
                     force = True
 
             if force and pid and self._is_process_alive(pid):
-                self._kill_process(pid)
+                if can_force_kill_pid:
+                    self._kill_process(pid)
+                else:
+                    logger.warning(
+                        "Skipping force-kill for '%s': PID is DB-sourced and not owned by this manager process",
+                        profile["name"],
+                    )
         except Exception as exc:
             logger.error("Error stopping '%s': %s", profile["name"], exc)
-            if pid and self._is_process_alive(pid):
+            if force and can_force_kill_pid and pid and self._is_process_alive(pid):
                 self._kill_process(pid)
 
         # Wait for process to exit

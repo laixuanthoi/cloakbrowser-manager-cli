@@ -14,6 +14,12 @@ Native CLI and TUI tool for managing [CloakBrowser](https://github.com/CloakHQ/C
 - **Tag & search**: Organize profiles with tags and full-text search
 - **Cross-platform**: Windows, macOS, Linux
 
+## Documentation
+
+- [docs/README.md](docs/README.md) — internal docs index
+- [docs/SPEC.md](docs/SPEC.md) — project specification
+- [AGENTS.md](AGENTS.md) — guidance for AI coding agents and maintainers
+
 ## Install
 
 ```bash
@@ -96,7 +102,11 @@ cm serve
 cm serve --host 127.0.0.1 --port 8080
 
 # Require Bearer token auth for protected routes
+# Use a strong random token for real use; this value is only an example.
 cm serve --auth-token "change-me"
+
+# For non-loopback hosts, auth is required. Prefer env vars so tokens are not in argv.
+CM_API_AUTH_TOKEN="replace-with-a-long-random-token" cm serve --host 0.0.0.0
 ```
 
 You can also start/stop the API server from the TUI:
@@ -116,7 +126,7 @@ http://127.0.0.1:8080/openapi.json
 
 `GET /api/status` and `/api/auth/*` compatibility endpoints are public. Profile,
 runtime, CDP, config, info, and stealth endpoints require auth when a token is
-configured.
+configured. Binding to a non-loopback host without an auth token is refused.
 
 ### Auth token usage
 

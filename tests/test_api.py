@@ -675,3 +675,17 @@ def test_api_stealth_test_rejects_non_http_url():
     )
 
     assert response.status_code == 422
+
+
+def test_api_launch_rejects_non_http_url():
+    client = TestClient(create_app())
+    create_response = client.post("/api/profiles", json={"name": "launch-url-api-guard"})
+    assert create_response.status_code == 201, create_response.text
+    profile_id = create_response.json()["id"]
+
+    response = client.post(
+        f"/api/profiles/{profile_id}/launch",
+        json={"url": "file:///etc/passwd"},
+    )
+
+    assert response.status_code == 422

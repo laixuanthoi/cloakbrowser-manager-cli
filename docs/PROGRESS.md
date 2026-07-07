@@ -65,7 +65,7 @@
 4. ✅ `profile edit` missing options — added 11 missing CLI options
 
 ### Remaining notes (low priority):
-- No CLI/TUI integration tests (test_cli.py from IMPL/17 not yet created)
+- No CLI/TUI integration tests (test_cli.py from docs/impl/17 not yet created)
 - TOCTOU in CDP port allocation (low risk for single-user desktop app)
 - `--json`/`--yaml` on top-level group vs subcommand (minor UX)
 - Unused `temp_data_dir` fixture in conftest.py (dead code)

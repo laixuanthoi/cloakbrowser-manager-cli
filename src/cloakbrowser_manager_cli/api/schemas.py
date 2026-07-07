@@ -101,7 +101,7 @@ class DeleteProfileResponse(BaseModel):
 class LaunchProfileRequest(BaseModel):
     """Request body for launching a profile."""
 
-    url: HttpUrl | str | None = None
+    url: HttpUrl | None = None
     headless: bool | None = None
     extra_args: list[BoundedArg] = Field(default_factory=list, max_length=100)
 

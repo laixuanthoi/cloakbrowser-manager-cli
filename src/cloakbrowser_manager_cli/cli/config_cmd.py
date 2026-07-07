@@ -78,6 +78,8 @@ def config_get(ctx: CLIContext, key: str):
     val = cfg.get_config_value(key)
     if val is None:
         click.echo(f"No config key: {key}", err=True)
+    elif key in {"license_key"}:
+        click.echo("****" if val else "—")
     else:
         click.echo(str(val))
 

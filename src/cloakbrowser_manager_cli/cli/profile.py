@@ -105,7 +105,7 @@ def create(ctx: CLIContext, name: str, **kwargs):
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1)
 
-    ctx.output.print(profile, title=f"Created profile: {name}")
+    ctx.output.print(_safe_profile_output(profile), title=f"Created profile: {name}")
     if ctx.output.format == "table":
         click.echo(f"\n  Launch: cm launch {profile['id'][:8]}")
 
@@ -122,7 +122,7 @@ def list_profiles(ctx: CLIContext, running: bool, stopped: bool, tag: str, searc
     profiles = db.list_profiles(status=status, tag=tag, search=search)
 
     if ctx.output.format != "table":
-        ctx.output.print(profiles)
+        ctx.output.print([_safe_profile_output(p) for p in profiles])
         return
 
     console = Console()
@@ -160,7 +160,7 @@ def show(ctx: CLIContext, identifier: str):
     if ctx.output.format == "table":
         _print_profile_detail(profile)
     else:
-        ctx.output.print(profile, title=f"Profile: {profile['name']}")
+        ctx.output.print(_safe_profile_output(profile), title=f"Profile: {profile['name']}")
 
 
 @profile.command("edit")
@@ -239,7 +239,7 @@ def edit(ctx: CLIContext, identifier: str, **kwargs):
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1)
 
-    ctx.output.print(updated, title=f"Updated: {updated['name']}")
+    ctx.output.print(_safe_profile_output(updated), title=f"Updated: {updated['name']}")
 
 
 @profile.command("delete")
@@ -336,7 +336,7 @@ def clone(ctx: CLIContext, identifier: str, name: str):
     except ValueError as exc:
         click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
-    ctx.output.print(new_profile, title=f"Cloned as: {name}")
+    ctx.output.print(_safe_profile_output(new_profile), title=f"Cloned as: {name}")
 
 
 @profile.command("export")
@@ -391,7 +391,7 @@ def import_profile(ctx: CLIContext, path: Path, name: str | None):
         click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1)
 
-    ctx.output.print(imported, title=f"Imported profile: {imported['name']}")
+    ctx.output.print(_safe_profile_output(imported), title=f"Imported profile: {imported['name']}")
 
 
 def _profile_export_payload(profile_data: dict[str, Any]) -> dict[str, Any]:
@@ -438,6 +438,14 @@ def _profile_import_payload(raw: Any, name_override: str | None = None) -> dict[
     if not data.get("name"):
         raise ValueError("Imported profile must have a name (or pass --name)")
     return data
+
+
+def _safe_profile_output(profile: dict[str, Any]) -> dict[str, Any]:
+    """Return a profile dict safe for CLI display/JSON/YAML output."""
+    safe = dict(profile)
+    safe["proxy"] = utils.redact_proxy(safe.get("proxy")) if safe.get("proxy") else None
+    safe["license_key"] = _redact_secret(safe.get("license_key")) if safe.get("license_key") else None
+    return safe
 
 
 def _print_profile_detail(profile: dict) -> None:
