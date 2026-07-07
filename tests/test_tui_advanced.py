@@ -94,6 +94,10 @@ def test_profile_detail_advanced_summary_renders():
         "tags": [],
     })
     rendered = str(widget.renderable)
-    assert "Advanced" in rendered
-    assert "Browser Ver" in rendered
+    assert "Runtime" in rendered
+    assert "Identity" in rendered
+    assert "Network" in rendered
+    assert "Browser" in rendered
+    assert "Storage" in rendered
+    assert "Version" in rendered
     assert "148.0.0.0" in rendered
