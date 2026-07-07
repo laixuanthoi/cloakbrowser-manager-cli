@@ -39,6 +39,10 @@ Footer {
 
 /* ── Modal Screens ─────────────────────────────────────────────────────── */
 
+ModalScreen {
+    align: center middle;
+}
+
 #modal {
     width: 60;
     height: auto;
@@ -46,7 +50,7 @@ Footer {
     background: $surface;
     border: thick $primary;
     padding: 1 2;
-    margin: 2 4;
+    margin: 0;
 }
 
 #modal-title {
