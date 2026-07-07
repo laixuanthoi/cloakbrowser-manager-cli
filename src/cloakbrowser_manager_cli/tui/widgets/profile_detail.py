@@ -27,20 +27,31 @@ class ProfileDetail(Static):
 
         self._profile = profile
 
+        def row(label: str, value: object, label2: str = "", value2: object = "") -> str:
+            """Return an aligned two-column detail row."""
+            left = f"[dim]{label + ':':<13}[/dim] {str(value):<24}"
+            if not label2:
+                return left.rstrip()
+            return f"{left} [dim]{label2 + ':':<13}[/dim] {value2}"
+
+        status = profile.get("status", "stopped")
+        status_text = f"[{self._status_color(status)}]{status.upper()}[/{self._status_color(status)}]"
+        screen = f"{profile.get('screen_width', 1920)}×{profile.get('screen_height', 1080)}"
+        humanize = f"{'✓' if profile.get('humanize') else '✗'} ({profile.get('human_preset', 'default')})"
+
         lines = [
-            f"[bold]{profile['name']}[/bold]  [{self._status_color(profile['status'])}]{profile['status'].upper()}[/{self._status_color(profile['status'])}]",
+            f"[bold]{profile['name']}[/bold]  {status_text}",
             "",
-            f"ID:           {profile['id'][:12]}…",
-            f"Platform:     {profile.get('platform', 'windows')}     Screen: {profile.get('screen_width', 1920)}×{profile.get('screen_height', 1080)}",
-            f"Humanize:     {'✓' if profile.get('humanize') else '✗'} ({profile.get('human_preset', 'default')})",
-            f"Headless:     {'✓' if profile.get('headless') else '✗'}    GeoIP: {'✓' if profile.get('geoip') else '✗'}",
-            f"Fingerprint:  {profile.get('fingerprint_seed')}",
+            row("ID", f"{profile['id'][:12]}…"),
+            row("Platform", profile.get("platform", "windows"), "Screen", screen),
+            row("Humanize", humanize, "Headless", "✓" if profile.get("headless") else "✗"),
+            row("GeoIP", "✓" if profile.get("geoip") else "✗", "Fingerprint", profile.get("fingerprint_seed")),
             "",
             "[bold cyan]Advanced[/bold cyan]",
-            f"Browser Ver:  {profile.get('browser_version') or 'auto'}    Extensions: {len(profile.get('extension_paths') or [])}",
-            f"Stealth Args: {'✓' if profile.get('stealth_args', True) else '✗'}    Mode: {profile.get('fingerprint_mode') or 'normal'}",
-            f"WebRTC IP:    {profile.get('webrtc_ip') or 'auto'}    3P Cookies: {'✓' if profile.get('allow_3p_cookies') else '✗'}",
-            f"Device Mem:   {profile.get('device_memory') or 'auto'}    Noise: {_format_optional_bool(profile.get('fingerprint_noise'))}",
+            row("Browser Ver", profile.get("browser_version") or "auto", "Extensions", len(profile.get("extension_paths") or [])),
+            row("Stealth Args", "✓" if profile.get("stealth_args", True) else "✗", "Mode", profile.get("fingerprint_mode") or "normal"),
+            row("WebRTC IP", profile.get("webrtc_ip") or "auto", "3P Cookies", "✓" if profile.get("allow_3p_cookies") else "✗"),
+            row("Device Mem", profile.get("device_memory") or "auto", "Noise", _format_optional_bool(profile.get("fingerprint_noise"))),
         ]
 
         if profile.get("proxy"):
@@ -48,32 +59,34 @@ class ProfileDetail(Static):
             try:
                 parsed = urlparse(profile["proxy"])
                 proxy_display = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
-                lines.append(f"Proxy:        {proxy_display}")
+                lines.append(row("Proxy", proxy_display))
             except Exception:
-                lines.append(f"Proxy:        {profile['proxy']}")
+                lines.append(row("Proxy", profile["proxy"]))
         else:
-            lines.append("Proxy:        —")
+            lines.append(row("Proxy", "—"))
 
-        if profile.get("timezone"):
-            lines.append(f"Timezone:     {profile['timezone']}    Locale: {profile.get('locale', '—')}")
-        else:
-            lines.append("Timezone:     —    Locale: —")
+        lines.append(row(
+            "Timezone",
+            profile.get("timezone") or "—",
+            "Locale",
+            profile.get("locale") or "—",
+        ))
 
         if profile.get("status") == "running":
             lines.append("")
-            lines.append(f"CDP:          http://127.0.0.1:{profile.get('cdp_port')}")
-            lines.append(f"PID:          {profile.get('pid')}")
+            lines.append(row("CDP", f"http://127.0.0.1:{profile.get('cdp_port')}"))
+            lines.append(row("PID", profile.get("pid") or "—"))
 
         tags = profile.get("tags", [])
         if tags:
             tag_str = ", ".join(f"[blue]{t['tag']}[/blue]" for t in tags)
-            lines.append(f"Tags:         {tag_str}")
+            lines.append(row("Tags", tag_str))
 
         if profile.get("notes"):
             notes = profile["notes"][:200]
             if len(profile["notes"]) > 200:
                 notes += "…"
-            lines.append(f"Notes:        [dim]{notes}[/dim]")
+            lines.append(row("Notes", f"[dim]{notes}[/dim]"))
 
         super().update("\n".join(lines))
 
