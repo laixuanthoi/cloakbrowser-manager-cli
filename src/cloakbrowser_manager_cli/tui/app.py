@@ -34,6 +34,49 @@ from cloakbrowser_manager_cli.tui.screens.code_snippet import CodeSnippetScreen
 logger = logging.getLogger(__name__)
 
 
+_WINDOWS_ASYNCIO_DEL_PATCHED = False
+
+
+def _suppress_windows_asyncio_closed_pipe_tracebacks() -> None:
+    """Suppress noisy Windows asyncio Proactor shutdown tracebacks.
+
+    Playwright/CloakBrowser uses asyncio subprocess transports on Windows. If a
+    browser is still running or a pipe is already closed while Python finalizes,
+    CPython 3.10 can print ignored-exception tracebacks from transport __del__
+    methods ("ValueError: I/O operation on closed pipe"). The process is already
+    exiting, so these tracebacks are not actionable and make `cm tui` look like
+    it crashed. Keep the patch narrow: only Windows, only the affected asyncio
+    finalizers, and only swallow this specific ValueError.
+    """
+    global _WINDOWS_ASYNCIO_DEL_PATCHED
+    if _WINDOWS_ASYNCIO_DEL_PATCHED or sys.platform != "win32":
+        return
+
+    try:
+        from asyncio import base_subprocess, proactor_events
+    except Exception:
+        return
+
+    def wrap(cls):
+        original = getattr(cls, "__del__", None)
+        if original is None or getattr(original, "_cm_closed_pipe_suppressed", False):
+            return
+
+        def safe_del(self):
+            try:
+                original(self)
+            except ValueError as exc:
+                if "I/O operation on closed pipe" not in str(exc):
+                    raise
+
+        safe_del._cm_closed_pipe_suppressed = True  # type: ignore[attr-defined]
+        cls.__del__ = safe_del
+
+    wrap(proactor_events._ProactorBasePipeTransport)
+    wrap(base_subprocess.BaseSubprocessTransport)
+    _WINDOWS_ASYNCIO_DEL_PATCHED = True
+
+
 class DashboardScreen(Screen):
     """Main dashboard screen showing profiles, details, and logs."""
 
@@ -537,5 +580,6 @@ class CloakBrowserTUI(App):
 
 def run_tui() -> None:
     """Entry point for `cm tui`."""
+    _suppress_windows_asyncio_closed_pipe_tracebacks()
     app = CloakBrowserTUI()
     app.run()
