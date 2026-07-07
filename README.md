@@ -199,6 +199,8 @@ with sync_playwright() as pw:
 | `cm profile edit <id>` | Edit profile settings (proxy, tags, platform, etc.) |
 | `cm profile delete <id>` | Delete a profile and its browser data |
 | `cm profile clone <id> --name <new>` | Clone settings to a new profile (new fingerprint, fresh data) |
+| `cm profile export <id> --out profile.json` | Export reusable profile settings to JSON |
+| `cm profile import profile.json --name <new>` | Import exported profile settings as a new profile |
 
 ### Launch & Stop
 
@@ -223,6 +225,8 @@ with sync_playwright() as pw:
 | `cm status` | System overview: total profiles, CDP usage, version |
 | `cm status <id>` | Detailed per-profile status with uptime |
 | `cm status --watch` | Auto-refresh status every 2 seconds (like htop) |
+| `cm health` | Check profile health using DB runtime fields, PID/CDP, and latest stealth report |
+| `cm health <id>` | Check one profile's health |
 
 ### CDP Automation
 
@@ -234,6 +238,17 @@ with sync_playwright() as pw:
 | `cm cdp code <id> --lang python` | Generate Playwright connection code |
 | `cm cdp code <id> --lang puppeteer` | Generate Puppeteer connection code |
 | `cm cdp check <id>` | Health-check the CDP endpoint |
+
+### Maintenance
+
+| Command | Description |
+|---|---|
+| `cm backup create` | Create a zip backup of profiles DB and config |
+| `cm backup list` | List backups in the default backup directory |
+| `cm backup restore backup.zip --force` | Restore DB/config from a backup zip |
+| `cm proxy check <id>` | Validate a profile proxy configuration |
+| `cm proxy check <id> --connect` | Make a real HTTP request through the profile proxy |
+| `cm proxy check --all` | Check every profile's proxy configuration |
 
 ### Configuration
 
@@ -256,12 +271,17 @@ with sync_playwright() as pw:
 | Key | Action |
 |---|---|
 | `n` | New profile |
+| `e` | Edit selected |
+| `a` | Advanced settings |
+| `d` | Delete selected |
+| `x` | Clone selected |
 | `l` | Launch selected |
 | `s` | Stop selected |
-| `e` | Edit selected |
-| `d` | Delete selected |
+| `t` | Run stealth test |
 | `c` | Copy CDP URL + show code snippet |
+| `v` | Start/stop REST API server |
 | `r` | Refresh |
+| `F1` | Help modal |
 | `q` | Quit |
 
 ## Global Options

@@ -1,8 +1,10 @@
 """CLI commands for profile management."""
 
 import asyncio
+import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -11,6 +13,20 @@ from rich.table import Table
 from cloakbrowser_manager_cli.cli.main import cli, pass_context, CLIContext
 from cloakbrowser_manager_cli.core import database as db
 from cloakbrowser_manager_cli.core.models import ProfileCreate, ProfileUpdate, Tag
+
+
+_PROFILE_EXPORT_EXCLUDE = {
+    "id",
+    "name",
+    "user_data_dir",
+    "created_at",
+    "updated_at",
+    "status",
+    "cdp_port",
+    "pid",
+    "last_launched",
+    "license_key",
+}
 
 
 @cli.group()
@@ -316,6 +332,107 @@ def clone(ctx: CLIContext, identifier: str, name: str):
 
     new_profile = db.create_profile(name=name, **clone_data)
     ctx.output.print(new_profile, title=f"Cloned as: {name}")
+
+
+@profile.command("export")
+@click.argument("identifier")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), help="Write JSON to file instead of stdout")
+@pass_context
+def export_profile(ctx: CLIContext, identifier: str, out_path: Path | None):
+    """Export a profile's reusable configuration as JSON."""
+    profile_data = db.find_profile(identifier)
+    if not profile_data:
+        click.echo(f"Profile not found: {identifier}", err=True)
+        raise SystemExit(1)
+
+    export_data = _profile_export_payload(profile_data)
+    text = json.dumps(export_data, indent=2, ensure_ascii=False)
+    if out_path:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text + "\n", encoding="utf-8")
+        if ctx.output.format == "table":
+            click.echo(f"Exported profile '{profile_data['name']}' to {out_path}")
+        else:
+            ctx.output.print({"path": str(out_path), "profile": profile_data["name"]})
+    else:
+        click.echo(text)
+
+
+@profile.command("import")
+@click.argument("path", type=click.Path(path_type=Path, exists=True, dir_okay=False))
+@click.option("--name", help="Override imported profile name")
+@pass_context
+def import_profile(ctx: CLIContext, path: Path, name: str | None):
+    """Import a profile exported by `cm profile export`."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        import_data = _profile_import_payload(raw, name_override=name)
+        profile_create = ProfileCreate(**import_data)
+    except Exception as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
+
+    try:
+        fields = profile_create.model_dump()
+        profile_name = fields.pop("name")
+        fingerprint_seed = fields.pop("fingerprint_seed", None)
+        fields["tags"] = [t.model_dump() for t in profile_create.tags]
+        imported = db.create_profile(
+            name=profile_name,
+            fingerprint_seed=fingerprint_seed,
+            **fields,
+        )
+    except Exception as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
+
+    ctx.output.print(imported, title=f"Imported profile: {imported['name']}")
+
+
+def _profile_export_payload(profile_data: dict[str, Any]) -> dict[str, Any]:
+    payload = {
+        k: v for k, v in profile_data.items()
+        if k not in _PROFILE_EXPORT_EXCLUDE
+    }
+    payload["name"] = profile_data["name"]
+    payload["tags"] = _export_tags(profile_data.get("tags", []))
+    return {
+        "schema": "cloakbrowser-manager.profile",
+        "version": 1,
+        "profile": payload,
+    }
+
+
+def _export_tags(tags: list[Any]) -> list[dict[str, str]]:
+    """Return compact export tags, omitting empty color metadata."""
+    result: list[dict[str, str]] = []
+    for tag in tags:
+        if isinstance(tag, dict):
+            item = {"tag": str(tag.get("tag", ""))}
+            if tag.get("color"):
+                item["color"] = str(tag["color"])
+            if item["tag"]:
+                result.append(item)
+        elif str(tag):
+            result.append({"tag": str(tag)})
+    return result
+
+
+def _profile_import_payload(raw: Any, name_override: str | None = None) -> dict[str, Any]:
+    if isinstance(raw, dict) and raw.get("profile") and isinstance(raw["profile"], dict):
+        data = dict(raw["profile"])
+    elif isinstance(raw, dict):
+        data = dict(raw)
+    else:
+        raise ValueError("Import file must contain a JSON object")
+
+    for key in _PROFILE_EXPORT_EXCLUDE:
+        data.pop(key, None)
+    if name_override:
+        data["name"] = name_override
+    if not data.get("name"):
+        raise ValueError("Imported profile must have a name (or pass --name)")
+    return data
 
 
 def _print_profile_detail(profile: dict) -> None:

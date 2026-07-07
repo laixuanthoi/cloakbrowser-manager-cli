@@ -252,6 +252,47 @@ def test_profile_clone_missing_name(runner):
     assert result.exit_code != 0
 
 
+# ── Profile Import/Export ────────────────────────────────────────────────────
+
+def test_profile_export_json_excludes_runtime_and_secret(runner):
+    runner.invoke(cli, [
+        "profile", "create", "export-src",
+        "--tag", "work",
+        "--notes", "export notes",
+        "--license-key", "secret-key",
+    ])
+    profile = db.find_profile("export-src")
+    db.update_profile(profile["id"], status="running", pid=123, cdp_port=5100)
+
+    result = runner.invoke(cli, ["profile", "export", "export-src"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    exported = payload["profile"]
+    assert exported["name"] == "export-src"
+    assert exported["tags"] == [{"tag": "work"}]
+    assert exported["notes"] == "export notes"
+    for key in ("id", "user_data_dir", "status", "pid", "cdp_port", "license_key"):
+        assert key not in exported
+
+
+def test_profile_import_with_name_override(runner, tmp_path):
+    runner.invoke(cli, ["profile", "create", "import-src", "--tag", "gmail", "--device-memory", "8"])
+    export_path = tmp_path / "profile.json"
+    export_result = runner.invoke(cli, ["profile", "export", "import-src", "--out", str(export_path)])
+    assert export_result.exit_code == 0, export_result.output
+
+    import_result = runner.invoke(cli, ["profile", "import", str(export_path), "--name", "import-dst"])
+
+    assert import_result.exit_code == 0, import_result.output
+    imported = db.find_profile("import-dst")
+    assert imported is not None
+    assert imported["device_memory"] == 8
+    assert [t["tag"] for t in imported["tags"]] == ["gmail"]
+    assert imported["status"] == "stopped"
+    assert imported["user_data_dir"] != db.find_profile("import-src")["user_data_dir"]
+
+
 # ── Profile Delete ───────────────────────────────────────────────────────────
 
 def test_profile_delete(runner):
