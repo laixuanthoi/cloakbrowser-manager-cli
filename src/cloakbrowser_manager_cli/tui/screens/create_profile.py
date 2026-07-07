@@ -29,8 +29,11 @@ class CreateProfileScreen(ModalScreen[dict | None]):
                         id="platform",
                     )
                 with Vertical():
-                    yield Label("Screen")
+                    yield Label("Screen Width")
                     yield Input(placeholder="1920", value="1920", id="screen_width")
+                with Vertical():
+                    yield Label("Screen Height")
+                    yield Input(placeholder="1080", value="1080", id="screen_height")
 
             yield Label("Proxy")
             yield Input(placeholder="http://user:pass@host:port or host:port", id="proxy")
@@ -64,11 +67,24 @@ class CreateProfileScreen(ModalScreen[dict | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-create":
             name_val = self.query_one("#name", Input).value.strip()
+            try:
+                screen_width = _parse_positive_int(
+                    self.query_one("#screen_width", Input).value or "1920",
+                    "Screen width",
+                )
+                screen_height = _parse_positive_int(
+                    self.query_one("#screen_height", Input).value or "1080",
+                    "Screen height",
+                )
+            except ValueError as exc:
+                self.notify(str(exc), severity="error")
+                return
+
             self._result = {
                 "name": name_val,
                 "platform": self.query_one("#platform", Select).value,
-                "screen_width": int(self.query_one("#screen_width", Input).value or "1920"),
-                "screen_height": 1080,
+                "screen_width": screen_width,
+                "screen_height": screen_height,
                 "proxy": self.query_one("#proxy", Input).value.strip() or None,
                 "timezone": self.query_one("#timezone", Input).value.strip() or None,
                 "locale": self.query_one("#locale", Input).value.strip() or None,
@@ -93,3 +109,13 @@ class CreateProfileScreen(ModalScreen[dict | None]):
 def _parse_tags(raw: str) -> list[dict]:
     tags = [t.strip() for t in raw.split(",") if t.strip()]
     return [{"tag": t} for t in tags]
+
+
+def _parse_positive_int(raw: str, label: str) -> int:
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be a number") from exc
+    if value <= 0:
+        raise ValueError(f"{label} must be greater than zero")
+    return value

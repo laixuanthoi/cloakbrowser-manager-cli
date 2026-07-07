@@ -32,6 +32,9 @@ class EditProfileScreen(ModalScreen[dict | None]):
                 with Vertical():
                     yield Label("Screen Width")
                     yield Input(value=str(p.get("screen_width", 1920)), id="screen_width")
+                with Vertical():
+                    yield Label("Screen Height")
+                    yield Input(value=str(p.get("screen_height", 1080)), id="screen_height")
 
             yield Label("Proxy")
             yield Input(value=p.get("proxy") or "", id="proxy", placeholder="http://proxy:8080")
@@ -52,6 +55,9 @@ class EditProfileScreen(ModalScreen[dict | None]):
                 yield Label("GeoIP")
                 yield Switch(value=bool(p.get("geoip")), id="geoip")
 
+            yield Label("Tags (comma-separated)")
+            yield Input(value=", ".join(t["tag"] for t in p.get("tags", [])), id="tags")
+
             yield Label("Notes")
             yield Input(value=p.get("notes") or "", id="notes", placeholder="Optional notes...")
 
@@ -62,16 +68,31 @@ class EditProfileScreen(ModalScreen[dict | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-save":
             name_val = self.query_one("#name", Input).value.strip()
+            try:
+                screen_width = _parse_positive_int(
+                    self.query_one("#screen_width", Input).value or "1920",
+                    "Screen width",
+                )
+                screen_height = _parse_positive_int(
+                    self.query_one("#screen_height", Input).value or "1080",
+                    "Screen height",
+                )
+            except ValueError as exc:
+                self.notify(str(exc), severity="error")
+                return
+
             result = {
                 "name": name_val,
                 "platform": self.query_one("#platform", Select).value,
-                "screen_width": int(self.query_one("#screen_width", Input).value or "1920"),
+                "screen_width": screen_width,
+                "screen_height": screen_height,
                 "proxy": self.query_one("#proxy", Input).value.strip() or None,
                 "timezone": self.query_one("#timezone", Input).value.strip() or None,
                 "locale": self.query_one("#locale", Input).value.strip() or None,
                 "humanize": self.query_one("#humanize", Switch).value,
                 "headless": self.query_one("#headless", Switch).value,
                 "geoip": self.query_one("#geoip", Switch).value,
+                "tags": _parse_tags(self.query_one("#tags", Input).value),
                 "notes": self.query_one("#notes", Input).value.strip() or None,
             }
             if not result["name"]:
@@ -84,3 +105,18 @@ class EditProfileScreen(ModalScreen[dict | None]):
     def on_key(self, event) -> None:
         if event.key == "escape":
             self.dismiss(None)
+
+
+def _parse_tags(raw: str) -> list[dict]:
+    tags = [t.strip() for t in raw.split(",") if t.strip()]
+    return [{"tag": t} for t in tags]
+
+
+def _parse_positive_int(raw: str, label: str) -> int:
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be a number") from exc
+    if value <= 0:
+        raise ValueError(f"{label} must be greater than zero")
+    return value
