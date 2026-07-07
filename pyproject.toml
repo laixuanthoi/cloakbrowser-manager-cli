@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "cloakbrowser-manager"
 version = "0.1.0"
 description = "CLI/TUI manager for CloakBrowser — create, manage, and launch stealth browser profiles"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 readme = "README.md"
 authors = [{name = "CloakBrowser Manager Contributors"}]
 keywords = ["cloakbrowser", "browser", "antidetect", "cli", "tui"]
@@ -15,7 +15,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -49,6 +48,9 @@ cm = "cloakbrowser_manager_cli.cli.main:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+cloakbrowser_manager_cli = ["tui/styles.css"]
 
 [tool.ruff]
 line-length = 100

@@ -22,6 +22,12 @@ pip install cloakbrowser-manager
 
 Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/) (`pip install cloakbrowser`).
 
+### From GitHub
+
+```bash
+pip install git+https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
+```
+
 ### From source
 
 ```bash
