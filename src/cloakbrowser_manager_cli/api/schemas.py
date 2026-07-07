@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 from cloakbrowser_manager_cli.core.models import Profile, ProfileCreate, ProfileUpdate
 
@@ -165,10 +165,17 @@ class StealthTestRequest(BaseModel):
     """Request body for running a stealth test."""
 
     external: bool = False
-    url: HttpUrl | str | None = None
+    url: HttpUrl | None = None
     headless: bool | None = None
     keep_open: bool = False
     timeout: float = Field(default=60.0, ge=1.0, le=600.0)
+
+    @field_validator("url")
+    @classmethod
+    def validate_external_url(cls, value: HttpUrl | None) -> HttpUrl | None:
+        if value is not None and value.scheme not in {"http", "https"}:
+            raise ValueError("URL must use http or https")
+        return value
 
 
 class StealthReportEntry(BaseModel):

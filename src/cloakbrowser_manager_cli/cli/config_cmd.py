@@ -17,8 +17,12 @@ def config():
 @pass_context
 def config_show(ctx: CLIContext):
     """Show current configuration."""
+    _print_config(ctx)
+
+
+def _config_payload() -> dict:
     c = cfg.load_config()
-    data = {
+    return {
         "data_dir": c.data_dir,
         "cdp_port_start": c.cdp_port_start,
         "cdp_port_range": c.cdp_port_range,
@@ -29,7 +33,10 @@ def config_show(ctx: CLIContext):
         "launch_timeout": f"{c.launch_timeout}s",
         "stop_timeout": f"{c.stop_timeout}s",
     }
-    ctx.output.print(data, title="Configuration")
+
+
+def _print_config(ctx: CLIContext) -> None:
+    ctx.output.print(_config_payload(), title="Configuration")
 
 
 @config.command("set")
@@ -58,8 +65,9 @@ def config_set(ctx: CLIContext, **kwargs):
         return
 
     cfg.update_config(**updates)
-    click.echo("Configuration updated.")
-    config_show(ctx)
+    if ctx.output.format == "table":
+        click.echo("Configuration updated.")
+    _print_config(ctx)
 
 
 @config.command("get")
@@ -89,4 +97,4 @@ def config_reset(ctx: CLIContext, force: bool):
         click.echo("Configuration reset to defaults.")
     else:
         click.echo("No configuration file found.")
-    config_show(ctx)
+    _print_config(ctx)

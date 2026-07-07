@@ -134,6 +134,7 @@ def cdp_check(ctx: CLIContext, identifier: str):
         click.echo(
             "  The browser may have crashed. Try 'cm stop --force' and relaunch.", err=True
         )
+        raise SystemExit(1)
 
 
 def _python_code(cdp_url: str) -> str:

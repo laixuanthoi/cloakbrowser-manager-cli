@@ -16,6 +16,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from cloakbrowser_manager_cli.core import database as db
+from cloakbrowser_manager_cli.core import utils
 from cloakbrowser_manager_cli.core.browser_manager import get_browser_manager, BrowserError
 from cloakbrowser_manager_cli.core.models import ProfileUpdate
 
@@ -88,7 +89,6 @@ class DashboardScreen(Screen):
         Binding("up,k", "cursor_up", "Up", show=False),
         Binding("down,j", "cursor_down", "Down", show=False),
         Binding("enter", "select_profile", "Select", show=False),
-        Binding("o", "open_cdp", "Open CDP", show=False),
         Binding("f5", "refresh", "Refresh", show=False),
 
         # Visible footer actions, ordered by workflow.
@@ -156,7 +156,11 @@ class DashboardScreen(Screen):
         )
 
     def _refresh_all(self) -> None:
-        """Full rebuild of profile list and detail."""
+        """Full rebuild of profile list, tag chips, and detail."""
+        all_profiles = db.list_profiles()
+        tags = sorted({t["tag"] for p in all_profiles for t in p.get("tags", []) if t.get("tag")})
+        self.query_one(TagFilter).update_tags(tags)
+
         profiles = self._load_filtered_profiles()
         self._profile_list_signature = self._signature_for_profiles(profiles)
 
@@ -559,11 +563,9 @@ class DashboardScreen(Screen):
                     _do_delete(profile)
 
         def _do_delete(p):
-            import shutil
-            from pathlib import Path
-            data_dir = Path(p["user_data_dir"])
-            if data_dir.exists():
-                shutil.rmtree(data_dir, ignore_errors=True)
+            data_deleted = utils.delete_profile_data_dir(p["user_data_dir"], ignore_errors=True)
+            if not data_deleted:
+                self._log("Profile data was not deleted (outside managed profiles dir or missing)")
             db.delete_profile(p["id"])
             self._log(f"Deleted: {p['name']}")
             self._selected_profile_id = None

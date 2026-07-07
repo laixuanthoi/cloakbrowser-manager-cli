@@ -661,3 +661,17 @@ def test_api_info_config_auth_protected_behavior():
     assert client.get("/api/info", headers=headers).status_code == 200
     assert client.get("/api/config", headers=headers).status_code == 200
     assert client.patch("/api/config", json={"log_level": "debug"}, headers=headers).status_code == 200
+
+
+def test_api_stealth_test_rejects_non_http_url():
+    client = TestClient(create_app())
+    create_response = client.post("/api/profiles", json={"name": "stealth-url-guard"})
+    assert create_response.status_code == 201, create_response.text
+    profile_id = create_response.json()["id"]
+
+    response = client.post(
+        f"/api/profiles/{profile_id}/stealth-test",
+        json={"external": True, "url": "file:///etc/passwd"},
+    )
+
+    assert response.status_code == 422

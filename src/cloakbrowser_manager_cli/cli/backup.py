@@ -56,7 +56,12 @@ def restore_backup(ctx: CLIContext, backup_path: Path, force: bool):
     if not force:
         click.echo("Refusing to overwrite current data without --force", err=True)
         raise SystemExit(1)
-    restored = _restore_backup(backup_path)
+    try:
+        restored = _restore_backup(backup_path)
+    except zipfile.BadZipFile as exc:
+        raise click.ClickException(f"Invalid backup archive: {backup_path}") from exc
+    except OSError as exc:
+        raise click.ClickException(f"Could not restore backup: {exc}") from exc
     if ctx.output.format == "table":
         click.echo(f"Restored backup: {backup_path}")
     else:

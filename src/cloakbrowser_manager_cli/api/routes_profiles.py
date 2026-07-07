@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +15,7 @@ from cloakbrowser_manager_cli.api.schemas import (
     ProfileUpdate,
 )
 from cloakbrowser_manager_cli.core import database as db
+from cloakbrowser_manager_cli.core import utils
 
 router = APIRouter(
     prefix="/api/profiles",
@@ -103,10 +102,7 @@ def delete_profile(
 
     data_deleted = False
     if not keep_data:
-        data_dir = Path(profile["user_data_dir"])
-        if data_dir.exists():
-            shutil.rmtree(data_dir, ignore_errors=True)
-            data_deleted = True
+        data_deleted = utils.delete_profile_data_dir(profile["user_data_dir"], ignore_errors=True)
 
     deleted = db.delete_profile(profile["id"])
     if not deleted:

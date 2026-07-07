@@ -5,6 +5,7 @@ the data directory to a temp folder, ensuring tests don't touch real data.
 """
 
 import json
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -252,6 +253,17 @@ def test_profile_clone_missing_name(runner):
     assert result.exit_code != 0
 
 
+def test_profile_clone_duplicate_name_is_clean_error(runner):
+    runner.invoke(cli, ["profile", "create", "clone-src3"])
+    runner.invoke(cli, ["profile", "create", "clone-dst3"])
+
+    result = runner.invoke(cli, ["profile", "clone", "clone-src3", "--name", "clone-dst3"])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert "Traceback" not in result.output
+
+
 # ── Profile Import/Export ────────────────────────────────────────────────────
 
 def test_profile_export_json_excludes_runtime_and_secret(runner):
@@ -479,3 +491,61 @@ def test_info_json(runner):
     assert "manager" in data
     assert "os" in data["system"]
     assert "data_dir" in data["manager"]
+
+
+# ── Audit Regression Tests ──────────────────────────────────────────────────
+
+def test_config_set_and_reset_do_not_crash(runner):
+    set_result = runner.invoke(cli, ["config", "set", "--log-level", "debug"])
+    assert set_result.exit_code == 0, set_result.output
+    assert "Configuration" in set_result.output
+
+    reset_result = runner.invoke(cli, ["config", "reset", "--force"])
+    assert reset_result.exit_code == 0, reset_result.output
+    assert "Configuration" in reset_result.output
+
+
+def test_backup_restore_invalid_zip_is_clean_error(runner, tmp_path):
+    bad_zip = tmp_path / "bad.zip"
+    bad_zip.write_text("not a zip", encoding="utf-8")
+
+    result = runner.invoke(cli, ["backup", "restore", str(bad_zip), "--force"])
+
+    assert result.exit_code != 0
+    assert "Invalid backup archive" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_proxy_check_socks_connect_reports_unsupported(runner):
+    runner.invoke(cli, ["profile", "create", "socks-profile", "--proxy", "socks5://127.0.0.1:9"])
+
+    result = runner.invoke(cli, ["--json", "proxy", "check", "socks-profile", "--connect"])
+
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data[0]["status"] == "unsupported"
+    assert "SOCKS" in data[0]["error"]
+
+
+def test_health_warns_when_running_without_cdp(runner):
+    runner.invoke(cli, ["profile", "create", "health-no-cdp"])
+    profile = db.find_profile("health-no-cdp")
+    db.update_profile(profile["id"], status="running", pid=os.getpid(), cdp_port=None)
+
+    result = runner.invoke(cli, ["--json", "health", "health-no-cdp"])
+
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data[0]["health"] != "ok"
+    assert any("CDP port is missing" in issue for issue in data[0]["issues"])
+
+
+def test_cdp_check_unhealthy_exits_nonzero(runner):
+    runner.invoke(cli, ["profile", "create", "bad-cdp"])
+    profile = db.find_profile("bad-cdp")
+    db.update_profile(profile["id"], status="running", pid=os.getpid(), cdp_port=9)
+
+    result = runner.invoke(cli, ["cdp", "check", "bad-cdp"])
+
+    assert result.exit_code == 1
+    assert "NOT responding" in result.output

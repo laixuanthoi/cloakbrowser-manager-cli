@@ -69,6 +69,11 @@ def _check_profile_proxy(profile: dict[str, Any], *, connect: bool, test_url: st
         return result
 
     if connect:
+        scheme = normalized.split(":", 1)[0].lower()
+        if scheme.startswith("socks"):
+            result["status"] = "unsupported"
+            result["error"] = "SOCKS proxy connect checks require a SOCKS-capable client; validation only was performed"
+            return result
         result["connect_tested"] = True
         try:
             body = _probe_proxy(normalized, test_url=test_url, timeout=timeout)

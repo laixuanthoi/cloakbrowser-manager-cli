@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import platform
 import re
+import shutil
 import socket
 import sys
 from pathlib import Path
@@ -153,11 +154,48 @@ def redact_proxy(url: str | None) -> str:
         return "\u2014"
     try:
         parsed = urlparse(url)
-        if parsed.password:
-            return url.replace(f":{parsed.password}@", ":****@")
+        if parsed.scheme and parsed.hostname:
+            auth = ""
+            if parsed.username:
+                auth = f"{parsed.username}:****@"
+            port = f":{parsed.port}" if parsed.port else ""
+            return f"{parsed.scheme}://{auth}{parsed.hostname}{port}"
     except Exception:
-        pass
+        # Best effort: redact common user:pass@ shape even if urlparse rejects
+        return re.sub(r"//([^:/@]+):([^@]+)@", r"//\1:****@", url)
     return url
+
+
+# ── Safe Data Deletion ───────────────────────────────────────────────────────
+
+def is_managed_profile_data_dir(path: str | Path) -> bool:
+    """Return True if path is inside the manager-owned profiles directory."""
+    from cloakbrowser_manager_cli.core.config import get_profiles_dir
+
+    try:
+        candidate = Path(path).expanduser().resolve(strict=False)
+        profiles_dir = get_profiles_dir().resolve(strict=False)
+        return candidate == profiles_dir or candidate.is_relative_to(profiles_dir)
+    except Exception:
+        return False
+
+
+def delete_profile_data_dir(path: str | Path, *, ignore_errors: bool = True) -> bool:
+    """Delete a profile user-data directory only if it is manager-owned.
+
+    Returns True if a directory existed and deletion was attempted. Raises
+    ValueError for paths outside the managed profiles directory unless
+    ignore_errors is True.
+    """
+    target = Path(path).expanduser()
+    if not is_managed_profile_data_dir(target):
+        if ignore_errors:
+            return False
+        raise ValueError(f"Refusing to delete unmanaged profile data dir: {target}")
+    if not target.exists():
+        return False
+    shutil.rmtree(target, ignore_errors=ignore_errors)
+    return True
 
 
 # ── File Lock Cleanup ────────────────────────────────────────────────────────

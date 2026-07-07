@@ -12,6 +12,7 @@ from rich.table import Table
 
 from cloakbrowser_manager_cli.cli.main import cli, pass_context, CLIContext
 from cloakbrowser_manager_cli.core import database as db
+from cloakbrowser_manager_cli.core import utils
 from cloakbrowser_manager_cli.core.models import ProfileCreate, ProfileUpdate, Tag
 
 
@@ -266,9 +267,9 @@ def delete(ctx: CLIContext, identifier: str, force: bool, keep_data: bool):
         asyncio.run(mgr.stop(profile["id"], force=True))
 
     if not keep_data:
-        data_dir = Path(profile["user_data_dir"])
-        if data_dir.exists():
-            shutil.rmtree(data_dir, ignore_errors=True)
+        deleted_data = utils.delete_profile_data_dir(profile["user_data_dir"], ignore_errors=True)
+        if not deleted_data:
+            click.echo("Profile data was not deleted (outside managed profiles dir or missing).")
 
     db.delete_profile(profile["id"])
     click.echo(f"Deleted profile: {profile['name']}")
@@ -330,7 +331,11 @@ def clone(ctx: CLIContext, identifier: str, name: str):
     clone_data["tags"] = original.get("tags", [])
     clone_data["launch_args"] = original.get("launch_args", [])
 
-    new_profile = db.create_profile(name=name, **clone_data)
+    try:
+        new_profile = db.create_profile(name=name, **clone_data)
+    except ValueError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        raise SystemExit(1)
     ctx.output.print(new_profile, title=f"Cloned as: {name}")
 
 
@@ -503,13 +508,4 @@ def _redact_secret(value: str | None) -> str:
 
 
 def _redact_proxy(url: str | None) -> str:
-    if not url:
-        return "\u2014"
-    from urllib.parse import urlparse
-    try:
-        parsed = urlparse(url)
-        if parsed.password:
-            return f"{parsed.scheme}://{parsed.username}:***@{parsed.hostname}:{parsed.port}"
-        return f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
-    except Exception:
-        return url
+    return utils.redact_proxy(url)

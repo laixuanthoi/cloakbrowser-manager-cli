@@ -47,8 +47,10 @@ def _profile_health(profile: dict[str, Any], *, check_cdp: bool = True) -> dict[
             pid_alive = get_browser_manager()._is_process_alive(pid)  # noqa: SLF001 - small CLI health probe
             if not pid_alive:
                 issues.append("status is running but PID is not alive")
-        elif not cdp_port:
+        if not pid and not cdp_port:
             issues.append("status is running but PID and CDP port are missing")
+        elif not cdp_port:
+            issues.append("status is running but CDP port is missing")
         if cdp_port and check_cdp:
             cdp_alive = get_cdp_manager().health_check_sync(int(cdp_port), timeout=1.0)
             if not cdp_alive:

@@ -28,6 +28,9 @@ class TagFilter(Static):
     def update_tags(self, tags: list[str]) -> None:
         """Update the available tags."""
         self._tags = sorted(set(tags))
+        if self.active_tag is not None and self.active_tag not in self._tags:
+            self.active_tag = None
+            return
         self._refresh_display()
 
     def watch_active_tag(self, old: str | None, new: str | None) -> None:
