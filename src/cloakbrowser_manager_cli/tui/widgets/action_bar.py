@@ -8,5 +8,5 @@ class ActionBar(Static):
 
     def __init__(self):
         super().__init__(
-            "[N]ew  [L]aunch  [S]top  [E]dit  [A]dvanced  [D]elete  [C]DP  [R]efresh  [Q]uit"
+            "[N]ew  [L]aunch  [S]top  [E]dit  [A]dvanced  [V] API  [D]elete  [C]DP  [R]efresh  [Q]uit"
         )

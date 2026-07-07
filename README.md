@@ -93,6 +93,14 @@ cm serve --host 127.0.0.1 --port 8080
 cm serve --auth-token "change-me"
 ```
 
+You can also start/stop the API server from the TUI:
+
+```bash
+cm tui
+# Press v → enter host/port/auth token → Start
+# Press v again to stop the managed API subprocess
+```
+
 OpenAPI documentation is available while the server is running:
 
 ```txt
@@ -322,7 +330,7 @@ CloakBrowser Manager stores profile configurations in SQLite and uses the [Cloak
 
 When you `cm stop`, the browser context closes gracefully, saving all session data. The CDP port is freed for reuse.
 
-No Docker, no VNC, no web server — just a CLI talking to CloakBrowser directly.
+No Docker and no VNC. The CLI/TUI talks to CloakBrowser directly, and the optional REST API server reuses the same local core when you need HTTP automation.
 
 ## Development
 

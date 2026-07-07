@@ -1,4 +1,5 @@
 from cloakbrowser_manager_cli.tui.app import DashboardScreen
+from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
 from cloakbrowser_manager_cli.tui.screens.advanced_profile import (
     AdvancedProfileScreen,
     _parse_extension_paths,
@@ -23,6 +24,40 @@ def test_advanced_profile_screen_imports():
 def test_dashboard_has_advanced_binding():
     actions = {binding.action for binding in DashboardScreen.BINDINGS}
     assert "advanced_profile" in actions
+
+
+def test_dashboard_has_api_server_binding():
+    actions = {binding.action for binding in DashboardScreen.BINDINGS}
+    assert "api_server" in actions
+
+
+def test_api_server_screen_imports():
+    screen = ApiServerScreen()
+    assert screen is not None
+
+
+def test_dashboard_api_running_state_and_cleanup():
+    class FakeProcess:
+        def __init__(self, returncode=None):
+            self.returncode = returncode
+            self.terminated = False
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self):
+            self.terminated = True
+
+    screen = DashboardScreen()
+    proc = FakeProcess(returncode=None)
+    screen._api_process = proc
+    assert screen._api_running is True
+    screen._cleanup_api_server_sync()
+    assert proc.terminated is True
+    assert screen._api_process is None
+
+    screen._api_process = FakeProcess(returncode=0)
+    assert screen._api_running is False
 
 
 def test_advanced_screen_parsers():

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -27,6 +28,7 @@ from cloakbrowser_manager_cli.tui.widgets.action_bar import ActionBar
 from cloakbrowser_manager_cli.tui.screens.create_profile import CreateProfileScreen
 from cloakbrowser_manager_cli.tui.screens.edit_profile import EditProfileScreen
 from cloakbrowser_manager_cli.tui.screens.advanced_profile import AdvancedProfileScreen
+from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
 from cloakbrowser_manager_cli.tui.screens.confirm import ConfirmScreen
 from cloakbrowser_manager_cli.tui.screens.code_snippet import CodeSnippetScreen
 
@@ -45,6 +47,7 @@ class DashboardScreen(Screen):
         Binding("s", "stop_profile", "Stop"),
         Binding("e", "edit_profile", "Edit"),
         Binding("a", "advanced_profile", "Advanced"),
+        Binding("v", "api_server", "API"),
         Binding("d", "delete_profile", "Delete"),
         Binding("c", "copy_cdp", "Copy CDP"),
         Binding("o", "open_cdp", "Open CDP", show=False),
@@ -63,6 +66,10 @@ class DashboardScreen(Screen):
         self._refreshing: bool = False
         self._last_known_status: str | None = None
         self._profile_list_signature: tuple | None = None
+        self._api_process: subprocess.Popen | None = None
+        self._api_monitor_task: asyncio.Task | None = None
+        self._api_expected_stop: bool = False
+        self._api_url: str | None = None
 
     def compose(self) -> ComposeResult:
         """Build the dashboard layout."""
@@ -169,6 +176,124 @@ class DashboardScreen(Screen):
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.query_one(LogPanel).write(f"[dim]{timestamp}[/dim]  {message}")
 
+    # ── API Server ────────────────────────────────────────────────────────
+
+    @property
+    def _api_running(self) -> bool:
+        """Return True if the managed API server subprocess is still alive."""
+        return self._api_process is not None and self._api_process.poll() is None
+
+    def _start_api_server(self, host: str, port: int, auth_token: str | None) -> None:
+        """Start the REST API server as a non-blocking subprocess."""
+        if self._api_running:
+            self._log(f"API server already running: {self._api_url}")
+            self.notify("API server is already running", severity="warning")
+            return
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "cloakbrowser_manager_cli",
+            "serve",
+            "--host",
+            host,
+            "--port",
+            str(port),
+        ]
+        if auth_token:
+            cmd.extend(["--auth-token", auth_token])
+
+        creationflags = 0
+        if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
+            creationflags = subprocess.CREATE_NO_WINDOW
+
+        try:
+            self._api_expected_stop = False
+            self._api_url = f"http://{host}:{port}"
+            self._api_process = subprocess.Popen(
+                cmd,
+                env=os.environ.copy(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                shell=False,
+                creationflags=creationflags,
+            )
+        except Exception as exc:
+            self._api_process = None
+            self._api_url = None
+            self._log(f"[red]API server failed to start: {exc}[/red]")
+            self.notify("API server failed to start", severity="error")
+            return
+
+        self._log(f"API server started: {self._api_url}/docs")
+        self.notify("API server started", severity="information")
+
+        if self._api_monitor_task:
+            self._api_monitor_task.cancel()
+        self._api_monitor_task = asyncio.create_task(self._monitor_api_server())
+
+    async def _monitor_api_server(self) -> None:
+        """Log if the API server subprocess exits unexpectedly."""
+        process = self._api_process
+        if process is None:
+            return
+
+        while process.poll() is None:
+            await asyncio.sleep(1)
+
+        exit_code = process.returncode
+        if self._api_process is process:
+            self._api_process = None
+            self._api_url = None
+
+        if self._api_expected_stop:
+            return
+        self._log(f"[red]API server exited unexpectedly (code {exit_code})[/red]")
+        self.notify("API server exited", severity="warning")
+
+    async def _stop_api_server(self, *, log: bool = True) -> None:
+        """Terminate the managed API server subprocess."""
+        process = self._api_process
+        if process is None or process.poll() is not None:
+            self._api_process = None
+            self._api_url = None
+            if log:
+                self._log("API server is not running")
+            return
+
+        self._api_expected_stop = True
+        process.terminate()
+        try:
+            await asyncio.wait_for(asyncio.to_thread(process.wait), timeout=5)
+        except asyncio.TimeoutError:
+            process.kill()
+            await asyncio.to_thread(process.wait)
+
+        self._api_process = None
+        self._api_url = None
+        if self._api_monitor_task:
+            self._api_monitor_task.cancel()
+            self._api_monitor_task = None
+        if log:
+            self._log("API server stopped")
+            self.notify("API server stopped", severity="information")
+
+    def _cleanup_api_server_sync(self) -> None:
+        """Best-effort synchronous cleanup used while quitting."""
+        self._api_expected_stop = True
+        process = self._api_process
+        self._api_process = None
+        self._api_url = None
+        if self._api_monitor_task:
+            self._api_monitor_task.cancel()
+            self._api_monitor_task = None
+        if process and process.poll() is None:
+            try:
+                process.terminate()
+            except Exception:
+                pass
+
     # ── Actions ───────────────────────────────────────────────────────────
 
     def action_new_profile(self) -> None:
@@ -266,6 +391,22 @@ class DashboardScreen(Screen):
 
         self.app.push_screen(AdvancedProfileScreen(profile), on_done)
 
+    def action_api_server(self) -> None:
+        """Start or stop the REST API server."""
+        if self._api_running:
+            asyncio.create_task(self._stop_api_server())
+            return
+
+        def on_done(server_data: dict | None):
+            if server_data:
+                self._start_api_server(
+                    server_data["host"],
+                    int(server_data["port"]),
+                    server_data.get("auth_token"),
+                )
+
+        self.app.push_screen(ApiServerScreen(), on_done)
+
     def action_delete_profile(self) -> None:
         """Delete the selected profile (with confirmation)."""
         if not self._selected_profile_id:
@@ -334,11 +475,19 @@ class DashboardScreen(Screen):
 
     def action_app_quit(self) -> None:
         """Exit the entire application."""
+        self._cleanup_api_server_sync()
         self.app.exit()
+
+    def on_unmount(self) -> None:
+        """Clean up background tasks/processes when the dashboard is removed."""
+        if self._refresh_timer:
+            self._refresh_timer.cancel()
+            self._refresh_timer = None
+        self._cleanup_api_server_sync()
 
     def action_show_help(self) -> None:
         """Show help screen."""
-        self._log("Keybindings: n=New l=Launch s=Stop e=Edit a=Advanced d=Delete c=CDP r=Refresh q=Quit")
+        self._log("Keybindings: n=New l=Launch s=Stop e=Edit a=Advanced v=API d=Delete c=CDP r=Refresh q=Quit")
 
     def on_profile_list_highlighted(self, event: ProfileList.Highlighted) -> None:
         """Auto-select profile when cursor moves with arrows/j/k."""
