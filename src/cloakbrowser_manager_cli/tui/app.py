@@ -23,7 +23,6 @@ from cloakbrowser_manager_cli.tui.widgets.profile_list import ProfileList
 from cloakbrowser_manager_cli.tui.widgets.tag_filter import TagFilter
 from cloakbrowser_manager_cli.tui.widgets.profile_detail import ProfileDetail
 from cloakbrowser_manager_cli.tui.widgets.log_panel import LogPanel
-from cloakbrowser_manager_cli.tui.widgets.action_bar import ActionBar
 
 from cloakbrowser_manager_cli.tui.screens.create_profile import CreateProfileScreen
 from cloakbrowser_manager_cli.tui.screens.edit_profile import EditProfileScreen
@@ -78,7 +77,6 @@ class DashboardScreen(Screen):
             with Vertical(id="sidebar"):
                 yield TagFilter()
                 yield ProfileList()
-                yield ActionBar()
             with Vertical(id="body"):
                 yield ProfileDetail()
                 yield LogPanel()

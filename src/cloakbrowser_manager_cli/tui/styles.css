@@ -28,13 +28,6 @@ LogPanel {
     height: 10;
 }
 
-ActionBar {
-    height: 3;
-    dock: bottom;
-    padding: 0 1;
-    background: $surface-darken-1;
-}
-
 TagFilter {
     height: 3;
     padding: 0 1;
