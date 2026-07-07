@@ -38,23 +38,25 @@ class DashboardScreen(Screen):
     """Main dashboard screen showing profiles, details, and logs."""
 
     BINDINGS = [
-        Binding("q", "app_quit", "Quit", priority=True),
+        # Hidden navigation/select helpers.
         Binding("up,k", "cursor_up", "Up", show=False),
         Binding("down,j", "cursor_down", "Down", show=False),
+        Binding("enter", "select_profile", "Select", show=False),
+        Binding("o", "open_cdp", "Open CDP", show=False),
+        Binding("f5", "refresh", "Refresh", show=False),
+
+        # Visible footer actions, ordered by workflow.
         Binding("n", "new_profile", "New"),
-        Binding("l", "launch_profile", "Launch"),
-        Binding("s", "stop_profile", "Stop"),
         Binding("e", "edit_profile", "Edit"),
         Binding("a", "advanced_profile", "Advanced"),
-        Binding("v", "api_server", "API"),
         Binding("d", "delete_profile", "Delete"),
-        Binding("c", "copy_cdp", "Copy CDP"),
-        Binding("o", "open_cdp", "Open CDP", show=False),
+        Binding("l", "launch_profile", "Launch"),
+        Binding("s", "stop_profile", "Stop"),
+        Binding("c", "copy_cdp", "CDP"),
+        Binding("v", "api_server", "API"),
         Binding("r", "refresh", "Refresh"),
-        Binding("f", "focus_search", "Search"),
-        Binding("enter", "select_profile", "Select", show=False),
         Binding("f1", "show_help", "Help"),
-        Binding("f5", "refresh", "Refresh", show=False),
+        Binding("q", "app_quit", "Quit", priority=True),
     ]
 
     def __init__(self):
