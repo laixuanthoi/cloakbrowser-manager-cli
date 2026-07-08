@@ -661,6 +661,7 @@ class CloakBrowserTUI(App):
     SUB_TITLE = "Stealth Browser Profile Manager"
 
     CSS_PATH = "styles.css"
+    theme = "nord"
 
     def on_mount(self) -> None:
         """Push the main dashboard screen."""

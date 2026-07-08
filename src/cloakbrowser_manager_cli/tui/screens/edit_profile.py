@@ -6,6 +6,10 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Static, Switch
 
 
+SCREEN_WIDTH_OPTIONS = [1366, 1440, 1536, 1600, 1920, 2560, 3440, 3840]
+SCREEN_HEIGHT_OPTIONS = [768, 900, 960, 1080, 1200, 1440, 1600, 2160]
+
+
 class EditProfileScreen(ModalScreen[dict | None]):
     """Modal form for editing an existing profile."""
 
@@ -31,10 +35,12 @@ class EditProfileScreen(ModalScreen[dict | None]):
                     )
                 with Vertical():
                     yield Label("Screen Width")
-                    yield Input(value=str(p.get("screen_width", 1920)), id="screen_width")
+                    screen_width = int(p.get("screen_width", 1920) or 1920)
+                    yield Select(_screen_options(SCREEN_WIDTH_OPTIONS, screen_width), value=screen_width, id="screen_width")
                 with Vertical():
                     yield Label("Screen Height")
-                    yield Input(value=str(p.get("screen_height", 1080)), id="screen_height")
+                    screen_height = int(p.get("screen_height", 1080) or 1080)
+                    yield Select(_screen_options(SCREEN_HEIGHT_OPTIONS, screen_height), value=screen_height, id="screen_height")
 
             yield Label("Proxy")
             yield Input(value=p.get("proxy") or "", id="proxy", placeholder="http://proxy:8080")
@@ -68,18 +74,8 @@ class EditProfileScreen(ModalScreen[dict | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-save":
             name_val = self.query_one("#name", Input).value.strip()
-            try:
-                screen_width = _parse_positive_int(
-                    self.query_one("#screen_width", Input).value or "1920",
-                    "Screen width",
-                )
-                screen_height = _parse_positive_int(
-                    self.query_one("#screen_height", Input).value or "1080",
-                    "Screen height",
-                )
-            except ValueError as exc:
-                self.notify(str(exc), severity="error")
-                return
+            screen_width = int(self.query_one("#screen_width", Select).value or 1920)
+            screen_height = int(self.query_one("#screen_height", Select).value or 1080)
 
             result = {
                 "name": name_val,
@@ -112,11 +108,6 @@ def _parse_tags(raw: str) -> list[dict]:
     return [{"tag": t} for t in tags]
 
 
-def _parse_positive_int(raw: str, label: str) -> int:
-    try:
-        value = int(raw)
-    except ValueError as exc:
-        raise ValueError(f"{label} must be a number") from exc
-    if value <= 0:
-        raise ValueError(f"{label} must be greater than zero")
-    return value
+def _screen_options(values: list[int], current: int | None = None) -> list[tuple[str, int]]:
+    options = sorted(set(values + ([current] if current else [])))
+    return [(str(value), value) for value in options]
