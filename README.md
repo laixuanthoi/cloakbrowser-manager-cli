@@ -14,6 +14,16 @@ Native CLI and TUI tool for managing [CloakBrowser](https://github.com/CloakHQ/C
 - **Tag & search**: Organize profiles with tags and full-text search
 - **Cross-platform**: Windows, macOS, Linux
 
+## Screenshots
+
+![TUI Dashboard](screenshots/tui-dashboard.png)
+
+*Main dashboard showing profile list with status, tags, and CDP ports.*
+
+![Code Snippet](screenshots/tui-code-snippet.png)
+
+*Code snippet popup — auto-generates Playwright/Puppeteer connection code.*
+
 ## Documentation
 
 - [docs/README.md](docs/README.md) — internal docs index
