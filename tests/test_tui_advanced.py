@@ -1,15 +1,15 @@
 from cloakbrowser_manager_cli.tui.app import DashboardScreen
 from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
-from cloakbrowser_manager_cli.tui.screens.advanced_profile import (
-    AdvancedProfileScreen,
-    _parse_extension_paths,
+from cloakbrowser_manager_cli.tui.screens.profile_form import (
+    ProfileFormScreen,
+    _parse_csv,
     _parse_fingerprint_noise,
     _parse_optional_int,
 )
 from cloakbrowser_manager_cli.tui.widgets.profile_detail import ProfileDetail
 
 
-def test_advanced_profile_screen_imports():
+def test_profile_form_screen_imports():
     profile = {
         "id": "p1",
         "name": "Profile",
@@ -17,7 +17,7 @@ def test_advanced_profile_screen_imports():
         "stealth_args": True,
         "fingerprint_mode": "normal",
     }
-    screen = AdvancedProfileScreen(profile)
+    screen = ProfileFormScreen(profile)
     assert screen is not None
 
 
@@ -60,8 +60,8 @@ def test_dashboard_api_running_state_and_cleanup():
     assert screen._api_running is False
 
 
-def test_advanced_screen_parsers():
-    assert _parse_extension_paths("/a, /b ,, /c") == ["/a", "/b", "/c"]
+def test_profile_form_parsers():
+    assert _parse_csv("/a, /b ,, /c") == ["/a", "/b", "/c"]
     assert _parse_optional_int("", "Value") is None
     assert _parse_optional_int("42", "Value") == 42
     assert _parse_fingerprint_noise("auto") is None
