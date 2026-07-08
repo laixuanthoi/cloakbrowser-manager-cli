@@ -42,23 +42,6 @@ def is_headless_environment() -> bool:
     return not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY")
 
 
-# ── URL Safety ───────────────────────────────────────────────────────────────
-
-def validate_navigation_url(url: str | None) -> str | None:
-    """Validate a user-supplied browser navigation URL.
-
-    Only http/https URLs are accepted by default. This prevents public API/CLI
-    launch calls from navigating managed browsers to local files or internal
-    browser schemes such as file:, data:, chrome:, etc.
-    """
-    if not url:
-        return None
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError("Launch URL must be an absolute http(s) URL")
-    return url
-
-
 # ── Proxy ────────────────────────────────────────────────────────────────────
 
 def normalize_proxy(raw: str | None) -> str | None:
@@ -186,15 +169,13 @@ def redact_proxy(url: str | None) -> str:
 # ── Safe Data Deletion ───────────────────────────────────────────────────────
 
 def is_managed_profile_data_dir(path: str | Path) -> bool:
-    """Return True if path is one direct child of the profiles directory."""
+    """Return True if path is inside the manager-owned profiles directory."""
     from cloakbrowser_manager_cli.core.config import get_profiles_dir
 
     try:
         candidate = Path(path).expanduser().resolve(strict=False)
         profiles_dir = get_profiles_dir().resolve(strict=False)
-        # Profile data dirs are created as profiles/<profile-id>. Never allow
-        # deleting the profiles root itself or arbitrary nested/restored paths.
-        return candidate.parent == profiles_dir and candidate.name not in {"", ".", ".."}
+        return candidate == profiles_dir or candidate.is_relative_to(profiles_dir)
     except Exception:
         return False
 

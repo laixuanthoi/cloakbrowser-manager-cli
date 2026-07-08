@@ -252,11 +252,8 @@ class DashboardScreen(Screen):
             "--port",
             str(port),
         ]
-
-        env = os.environ.copy()
         if auth_token:
-            # Do not put auth tokens in argv where local process listings can expose them.
-            env["CM_API_AUTH_TOKEN"] = auth_token
+            cmd.extend(["--auth-token", auth_token])
 
         creationflags = 0
         if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
@@ -267,7 +264,7 @@ class DashboardScreen(Screen):
             self._api_url = f"http://{host}:{port}"
             self._api_process = subprocess.Popen(
                 cmd,
-                env=env,
+                env=os.environ.copy(),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 stdin=subprocess.DEVNULL,
