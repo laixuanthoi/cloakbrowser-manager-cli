@@ -25,17 +25,20 @@ Guidance for AI coding agents working on this repository.
 ## Common commands
 
 ```bash
+# Install/sync dev environment
+uv sync --extra dev
+
 # Run tests
-python -m pytest tests/ -q
+uv run pytest tests/ -q
 
 # Run CLI from source
-python -m cloakbrowser_manager_cli --help
-python -m cloakbrowser_manager_cli tui
+uv run cm --help
+uv run cm tui
 
 # Build wheel
-python -m build --wheel
+uv run python -m build --wheel
 
-# Install editable dev package
+# Alternative editable pip install
 pip install -e ".[dev]"
 ```
 

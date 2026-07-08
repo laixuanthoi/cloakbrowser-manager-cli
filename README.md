@@ -34,7 +34,17 @@ Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/)
 pip install git+https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
 ```
 
-### From source
+### From source with uv
+
+```bash
+git clone https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
+cd CloakBrowser-Manager-CLI
+uv sync --extra dev
+uv run cm --help
+uv run cm tui
+```
+
+### From source with pip
 
 ```bash
 git clone https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
