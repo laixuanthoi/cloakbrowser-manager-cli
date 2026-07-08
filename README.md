@@ -22,10 +22,6 @@ Native CLI and TUI tool for managing [CloakBrowser](https://github.com/CloakHQ/C
 
 ## Install
 
-```bash
-pip install cloakbrowser-manager
-```
-
 Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/) (`pip install cloakbrowser`).
 
 ### From GitHub
