@@ -18,12 +18,16 @@ from textual.widgets import Footer, Header
 from cloakbrowser_manager_cli.core import database as db
 from cloakbrowser_manager_cli.core import utils
 from cloakbrowser_manager_cli.core.browser_manager import get_browser_manager, BrowserError
+from cloakbrowser_manager_cli.core.models import ProfileUpdate
+
 from cloakbrowser_manager_cli.tui.widgets.profile_list import ProfileList
 from cloakbrowser_manager_cli.tui.widgets.tag_filter import TagFilter
 from cloakbrowser_manager_cli.tui.widgets.profile_detail import ProfileDetail
 from cloakbrowser_manager_cli.tui.widgets.log_panel import LogPanel
 
-from cloakbrowser_manager_cli.tui.screens.profile_form import ProfileFormScreen
+from cloakbrowser_manager_cli.tui.screens.create_profile import CreateProfileScreen
+from cloakbrowser_manager_cli.tui.screens.edit_profile import EditProfileScreen
+from cloakbrowser_manager_cli.tui.screens.advanced_profile import AdvancedProfileScreen
 from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
 from cloakbrowser_manager_cli.tui.screens.clone_profile import CloneProfileScreen
 from cloakbrowser_manager_cli.tui.screens.confirm import ConfirmScreen
@@ -90,7 +94,7 @@ class DashboardScreen(Screen):
         # Visible footer actions, ordered by workflow.
         Binding("n", "new_profile", "New"),
         Binding("e", "edit_profile", "Edit"),
-        Binding("a", "advanced_profile", "Advanced", show=False),
+        Binding("a", "advanced_profile", "Advanced"),
         Binding("d", "delete_profile", "Delete"),
         Binding("x", "clone_profile", "Clone"),
         Binding("l", "launch_profile", "Launch"),
@@ -351,7 +355,7 @@ class DashboardScreen(Screen):
                 db.create_profile(**profile_data)
                 self._log(f"Created profile: {profile_data.get('name')}")
                 self._refresh_all()
-        self.app.push_screen(ProfileFormScreen(), on_done)
+        self.app.push_screen(CreateProfileScreen(), on_done)
 
     def action_launch_profile(self) -> None:
         """Launch the selected profile."""
@@ -413,11 +417,31 @@ class DashboardScreen(Screen):
                 self._log(f"Updated: {profile['name']}")
                 self._refresh_all()
 
-        self.app.push_screen(ProfileFormScreen(profile), on_done)
+        self.app.push_screen(EditProfileScreen(profile), on_done)
 
     def action_advanced_profile(self) -> None:
-        """Open the unified edit form; advanced settings are included there."""
-        self.action_edit_profile()
+        """Open the advanced profile options modal."""
+        if not self._selected_profile_id:
+            self._log("No profile selected — use ↑/↓ to navigate")
+            self.notify("Select a profile first", severity="warning")
+            return
+        profile = db.get_profile(self._selected_profile_id)
+        if not profile:
+            return
+
+        def on_done(updated_data: dict | None):
+            if updated_data:
+                try:
+                    validated = ProfileUpdate(**updated_data).model_dump(exclude_unset=True)
+                    db.update_profile(profile["id"], **validated)
+                except Exception as exc:
+                    self._log(f"[red]Advanced update failed: {exc}[/red]")
+                    self.notify("Advanced update failed", severity="error")
+                    return
+                self._log(f"Updated advanced options: {profile['name']}")
+                self._refresh_detail()
+
+        self.app.push_screen(AdvancedProfileScreen(profile), on_done)
 
     def action_api_server(self) -> None:
         """Start or stop the REST API server."""

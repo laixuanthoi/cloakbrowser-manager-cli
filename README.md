@@ -283,7 +283,8 @@ with sync_playwright() as pw:
 | Key | Action |
 |---|---|
 | `n` | New profile |
-| `e` | Edit selected, including advanced settings |
+| `e` | Edit selected |
+| `a` | Advanced settings |
 | `d` | Delete selected |
 | `x` | Clone selected |
 | `l` | Launch selected |
