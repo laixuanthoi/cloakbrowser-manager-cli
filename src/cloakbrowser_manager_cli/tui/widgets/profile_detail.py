@@ -5,7 +5,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
-from textual.widgets import Button, Input, Label, Select, Static, Switch, TabbedContent, TabPane
+from textual.widgets import Button, Input, Label, Select, Static, Switch
 
 
 SCREEN_SIZE_OPTIONS = [
@@ -44,130 +44,118 @@ class ProfileDetail(VerticalScroll):
     def compose(self) -> ComposeResult:
         yield Static("Select a profile or press New", id="detail-summary")
 
-        with TabbedContent(id="detail-tabs"):
-            with TabPane("Basic", id="detail-basic"):
-                yield Label("Name")
-                yield Input(placeholder="Profile name", id="detail-name")
+        yield Static("[bold cyan]Basic[/bold cyan]", classes="detail-section")
+        yield Label("Name")
+        yield Input(placeholder="Profile name", id="detail-name")
+        with Horizontal():
+            with Vertical():
+                yield Label("Platform")
+                yield Select(
+                    [("Windows", "windows"), ("macOS", "macos"), ("Linux", "linux")],
+                    value="windows",
+                    id="detail-platform",
+                )
+            with Vertical():
+                yield Label("Screen Size")
+                yield Select(
+                    _screen_size_options(SCREEN_SIZE_OPTIONS, "1920x1080"),
+                    value="1920x1080",
+                    id="detail-screen-size",
+                )
+        with Horizontal():
+            yield Label("Humanize")
+            yield Switch(value=False, id="detail-humanize")
+            yield Label("Headless")
+            yield Switch(value=False, id="detail-headless")
+            yield Label("GeoIP")
+            yield Switch(value=False, id="detail-geoip")
 
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Platform")
-                        yield Select(
-                            [("Windows", "windows"), ("macOS", "macos"), ("Linux", "linux")],
-                            value="windows",
-                            id="detail-platform",
-                        )
-                    with Vertical():
-                        yield Label("Screen Size")
-                        yield Select(
-                            _screen_size_options(SCREEN_SIZE_OPTIONS, "1920x1080"),
-                            value="1920x1080",
-                            id="detail-screen-size",
-                        )
+        yield Static("[bold cyan]Network[/bold cyan]", classes="detail-section")
+        yield Label("Proxy")
+        yield Input(placeholder="http://user:pass@host:port or host:port", id="detail-proxy")
+        with Horizontal():
+            with Vertical():
+                yield Label("Timezone")
+                yield Input(placeholder="America/New_York", id="detail-timezone")
+            with Vertical():
+                yield Label("Locale")
+                yield Input(placeholder="en-US", id="detail-locale")
+        yield Label("WebRTC IP")
+        yield Input(placeholder="auto or explicit IP", id="detail-webrtc-ip")
 
-                with Horizontal():
-                    yield Label("Humanize")
-                    yield Switch(value=False, id="detail-humanize")
-                    yield Label("Headless")
-                    yield Switch(value=False, id="detail-headless")
-                    yield Label("GeoIP")
-                    yield Switch(value=False, id="detail-geoip")
+        yield Static("[bold cyan]Browser[/bold cyan]", classes="detail-section")
+        with Horizontal():
+            with Vertical():
+                yield Label("Browser Version")
+                yield Input(placeholder="auto", id="detail-browser-version")
+            with Vertical():
+                yield Label("Stealth Args")
+                yield Switch(value=True, id="detail-stealth-args")
+        yield Label("Extension Paths (comma-separated)")
+        yield Input(id="detail-extension-paths")
 
-            with TabPane("Network", id="detail-network"):
-                yield Label("Proxy")
-                yield Input(placeholder="http://user:pass@host:port or host:port", id="detail-proxy")
+        yield Static("[bold cyan]Fingerprint[/bold cyan]", classes="detail-section")
+        with Horizontal():
+            with Vertical():
+                yield Label("Device Memory (GB)")
+                yield Input(placeholder="auto", id="detail-device-memory")
+            with Vertical():
+                yield Label("Storage Quota (MB)")
+                yield Input(placeholder="auto", id="detail-storage-quota")
+        with Horizontal():
+            with Vertical():
+                yield Label("Brand")
+                yield Input(placeholder="auto", id="detail-brand")
+            with Vertical():
+                yield Label("Brand Version")
+                yield Input(placeholder="auto", id="detail-brand-version")
+        with Horizontal():
+            with Vertical():
+                yield Label("Platform Version")
+                yield Input(placeholder="auto", id="detail-platform-version")
+            with Vertical():
+                yield Label("Location")
+                yield Input(placeholder="lat,long", id="detail-location")
+        with Horizontal():
+            with Vertical():
+                yield Label("Taskbar Height")
+                yield Input(placeholder="auto", id="detail-taskbar-height")
+            with Vertical():
+                yield Label("Fingerprint Mode")
+                yield Select(
+                    [("Normal", "normal"), ("Off / pass-through", "off")],
+                    value="normal",
+                    id="detail-fingerprint-mode",
+                )
+        with Horizontal():
+            with Vertical():
+                yield Label("Fingerprint Noise")
+                yield Select(
+                    [("Auto", "auto"), ("Enabled", "true"), ("Disabled", "false")],
+                    value="auto",
+                    id="detail-fingerprint-noise",
+                )
+            with Vertical():
+                yield Label("Fonts Dir")
+                yield Input(placeholder="/path/to/fonts", id="detail-fonts-dir")
 
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Timezone")
-                        yield Input(placeholder="America/New_York", id="detail-timezone")
-                    with Vertical():
-                        yield Label("Locale")
-                        yield Input(placeholder="en-US", id="detail-locale")
+        yield Static("[bold cyan]Compatibility[/bold cyan]", classes="detail-section")
+        with Horizontal():
+            yield Label("Windows Font Metrics")
+            yield Switch(value=False, id="detail-windows-font-metrics")
+            yield Label("3P Cookies")
+            yield Switch(value=False, id="detail-allow-3p-cookies")
+        with Horizontal():
+            yield Label("License Through Proxy")
+            yield Switch(value=False, id="detail-license-through-proxy")
+            yield Label("Widevine")
+            yield Switch(value=False, id="detail-widevine-enabled")
 
-                yield Label("WebRTC IP")
-                yield Input(placeholder="auto or explicit IP", id="detail-webrtc-ip")
-
-            with TabPane("Browser", id="detail-browser"):
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Browser Version")
-                        yield Input(placeholder="auto", id="detail-browser-version")
-                    with Vertical():
-                        yield Label("Stealth Args")
-                        yield Switch(value=True, id="detail-stealth-args")
-
-                yield Label("Extension Paths (comma-separated)")
-                yield Input(id="detail-extension-paths")
-
-            with TabPane("Fingerprint", id="detail-fingerprint"):
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Device Memory (GB)")
-                        yield Input(placeholder="auto", id="detail-device-memory")
-                    with Vertical():
-                        yield Label("Storage Quota (MB)")
-                        yield Input(placeholder="auto", id="detail-storage-quota")
-
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Brand")
-                        yield Input(placeholder="auto", id="detail-brand")
-                    with Vertical():
-                        yield Label("Brand Version")
-                        yield Input(placeholder="auto", id="detail-brand-version")
-
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Platform Version")
-                        yield Input(placeholder="auto", id="detail-platform-version")
-                    with Vertical():
-                        yield Label("Location")
-                        yield Input(placeholder="lat,long", id="detail-location")
-
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Taskbar Height")
-                        yield Input(placeholder="auto", id="detail-taskbar-height")
-                    with Vertical():
-                        yield Label("Fingerprint Mode")
-                        yield Select(
-                            [("Normal", "normal"), ("Off / pass-through", "off")],
-                            value="normal",
-                            id="detail-fingerprint-mode",
-                        )
-
-                with Horizontal():
-                    with Vertical():
-                        yield Label("Fingerprint Noise")
-                        yield Select(
-                            [("Auto", "auto"), ("Enabled", "true"), ("Disabled", "false")],
-                            value="auto",
-                            id="detail-fingerprint-noise",
-                        )
-                    with Vertical():
-                        yield Label("Fonts Dir")
-                        yield Input(placeholder="/path/to/fonts", id="detail-fonts-dir")
-
-            with TabPane("Compat", id="detail-compat"):
-                with Horizontal():
-                    yield Label("Windows Font Metrics")
-                    yield Switch(value=False, id="detail-windows-font-metrics")
-                    yield Label("3P Cookies")
-                    yield Switch(value=False, id="detail-allow-3p-cookies")
-
-                with Horizontal():
-                    yield Label("License Through Proxy")
-                    yield Switch(value=False, id="detail-license-through-proxy")
-                    yield Label("Widevine")
-                    yield Switch(value=False, id="detail-widevine-enabled")
-
-            with TabPane("Notes", id="detail-notes-tab"):
-                yield Label("Tags (comma-separated)")
-                yield Input(placeholder="gmail, work, production", id="detail-tags")
-
-                yield Label("Notes")
-                yield Input(placeholder="Optional notes...", id="detail-notes")
+        yield Static("[bold cyan]Organization[/bold cyan]", classes="detail-section")
+        yield Label("Tags (comma-separated)")
+        yield Input(placeholder="gmail, work, production", id="detail-tags")
+        yield Label("Notes")
+        yield Input(placeholder="Optional notes...", id="detail-notes")
 
         with Horizontal(id="detail-buttons"):
             yield Button("Save", variant="primary", id="detail-save")
