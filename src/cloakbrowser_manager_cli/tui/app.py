@@ -23,6 +23,7 @@ from cloakbrowser_manager_cli.tui.widgets.tag_filter import TagFilter
 from cloakbrowser_manager_cli.tui.widgets.profile_detail import ProfileDetail
 from cloakbrowser_manager_cli.tui.widgets.log_panel import LogPanel
 
+from cloakbrowser_manager_cli.tui.screens.profile_form import ProfileFormScreen
 from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
 from cloakbrowser_manager_cli.tui.screens.clone_profile import CloneProfileScreen
 from cloakbrowser_manager_cli.tui.screens.confirm import ConfirmScreen
@@ -110,7 +111,6 @@ class DashboardScreen(Screen):
         self._refreshing: bool = False
         self._last_known_status: str | None = None
         self._profile_list_signature: tuple | None = None
-        self._creating_profile: bool = False
         self._api_process: subprocess.Popen | None = None
         self._api_monitor_task: asyncio.Task | None = None
         self._api_expected_stop: bool = False
@@ -193,8 +193,7 @@ class DashboardScreen(Screen):
                 self._selected_profile_id = None
                 self._last_known_status = None
         else:
-            if not self._creating_profile:
-                detail_widget.clear()
+            detail_widget.clear()
             self._last_known_status = None
 
     def _start_auto_refresh(self) -> None:
@@ -346,11 +345,13 @@ class DashboardScreen(Screen):
     # ── Actions ───────────────────────────────────────────────────────────
 
     def action_new_profile(self) -> None:
-        """Start creating a profile in the detail panel."""
-        self._selected_profile_id = None
-        self._creating_profile = True
-        self.query_one(ProfileDetail).start_create()
-        self._log("New profile: fill the detail panel and press Save")
+        """Open the create profile modal."""
+        def on_done(profile_data: dict | None):
+            if profile_data:
+                db.create_profile(**profile_data)
+                self._log(f"Created profile: {profile_data.get('name')}")
+                self._refresh_all()
+        self.app.push_screen(ProfileFormScreen(), on_done)
 
     def action_launch_profile(self) -> None:
         """Launch the selected profile."""
@@ -397,13 +398,22 @@ class DashboardScreen(Screen):
         asyncio.create_task(do_stop())
 
     def action_edit_profile(self) -> None:
-        """Focus the inline profile editor."""
+        """Open the edit profile modal."""
         if not self._selected_profile_id:
             self._log("No profile selected — use ↑/↓ to navigate")
             self.notify("Select a profile first", severity="warning")
             return
-        self.query_one(ProfileDetail).focus()
-        self._log("Edit inline in the detail panel, then press Save")
+        profile = db.get_profile(self._selected_profile_id)
+        if not profile:
+            return
+
+        def on_done(updated_data: dict | None):
+            if updated_data:
+                db.update_profile(profile["id"], **updated_data)
+                self._log(f"Updated: {profile['name']}")
+                self._refresh_all()
+
+        self.app.push_screen(ProfileFormScreen(profile), on_done)
 
     def action_advanced_profile(self) -> None:
         """Open the unified edit form; advanced settings are included there."""
@@ -591,7 +601,6 @@ class DashboardScreen(Screen):
         """Auto-select profile when cursor moves with arrows/j/k."""
         if self._refreshing:
             return
-        self._creating_profile = False
         self._selected_profile_id = event.profile_id
         self._refresh_detail()
 
@@ -599,29 +608,8 @@ class DashboardScreen(Screen):
         """Handle explicit selection (Enter key/click)."""
         if self._refreshing:
             return
-        self._creating_profile = False
         self._selected_profile_id = event.profile_id
         self._refresh_detail()
-
-    def on_profile_detail_saved(self, event: ProfileDetail.Saved) -> None:
-        """Persist inline profile editor changes."""
-        try:
-            if event.profile_id is None:
-                created = db.create_profile(**event.data)
-                self._selected_profile_id = created["id"]
-                self._creating_profile = False
-                self._log(f"Created profile: {created['name']}")
-            else:
-                updated = db.update_profile(event.profile_id, **event.data)
-                self._selected_profile_id = event.profile_id
-                self._creating_profile = False
-                self._log(f"Updated: {updated['name'] if updated else event.data.get('name')}")
-        except Exception as exc:
-            self._log(f"[red]Save failed: {exc}[/red]")
-            self.notify("Save failed", severity="error")
-            return
-        self._refresh_all()
-        self.notify("Profile saved", severity="information")
 
     def on_tag_filter_changed(self, event: TagFilter.Changed) -> None:
         """Handle tag filter change."""
