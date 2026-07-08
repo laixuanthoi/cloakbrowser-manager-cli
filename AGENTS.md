@@ -71,14 +71,14 @@ docs/       spec, plans, progress, implementation notes
 Before finishing code changes, run:
 
 ```bash
-python -m pytest tests/ -q
+uv run pytest tests/ -q
 ```
 
 For packaging changes, also run:
 
 ```bash
 rm -rf build dist src/*.egg-info
-python -m build --wheel
+uv run python -m build --wheel
 ```
 
 ## Style guidance

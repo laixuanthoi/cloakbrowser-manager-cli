@@ -22,25 +22,42 @@ Native CLI and TUI tool for managing [CloakBrowser](https://github.com/CloakHQ/C
 
 ## Install
 
-Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/) (`pip install cloakbrowser`).
+Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/).
 
-### From GitHub
+### Quick install (recommended)
 
 ```bash
-pip install git+https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
+git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
+cd cloakbrowser-manager-cli
+uv tool install -e .
+cm --help
 ```
 
-### From source with uv
+This gives you a persistent `cm` command usable from any terminal.
+
+### Dev install with uv
 
 ```bash
 git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
 cd cloakbrowser-manager-cli
 uv sync --extra dev
-uv run cm --help
 uv run cm tui
+uv run pytest tests/ -q
 ```
 
-### From source with pip
+### From PyPI
+
+```bash
+pip install cloakbrowser-manager
+```
+
+### From GitHub with pip
+
+```bash
+pip install git+https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
+```
+
+### Editable pip install
 
 ```bash
 git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
@@ -375,19 +392,19 @@ No Docker and no VNC. The CLI/TUI talks to CloakBrowser directly, and the option
 ```bash
 git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
 cd cloakbrowser-manager-cli
-pip install -e ".[dev]"
+uv sync --extra dev
 
 # Run tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Lint
-ruff check src/
+uv run ruff check src/
 
 # Type check
-mypy src/cloakbrowser_manager_cli/
+uv run mypy src/cloakbrowser_manager_cli/
 
 # Run CLI
-python -m cloakbrowser_manager_cli --help
+uv run cm --help
 ```
 
 ## License
