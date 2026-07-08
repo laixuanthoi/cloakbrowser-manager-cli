@@ -31,14 +31,14 @@ Requires Python 3.10+ and [CloakBrowser](https://pypi.org/project/cloakbrowser/)
 ### From GitHub
 
 ```bash
-pip install git+https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
+pip install git+https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
 ```
 
 ### From source with uv
 
 ```bash
-git clone https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
-cd CloakBrowser-Manager-CLI
+git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
+cd cloakbrowser-manager-cli
 uv sync --extra dev
 uv run cm --help
 uv run cm tui
@@ -47,8 +47,8 @@ uv run cm tui
 ### From source with pip
 
 ```bash
-git clone https://github.com/CloakHQ/CloakBrowser-Manager-CLI.git
-cd CloakBrowser-Manager-CLI
+git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
+cd cloakbrowser-manager-cli
 pip install -e ".[dev]"
 ```
 
@@ -377,7 +377,7 @@ No Docker and no VNC. The CLI/TUI talks to CloakBrowser directly, and the option
 ## Development
 
 ```bash
-git clone <repo>
+git clone https://github.com/laixuanthoi/cloakbrowser-manager-cli.git
 cd cloakbrowser-manager-cli
 pip install -e ".[dev]"
 

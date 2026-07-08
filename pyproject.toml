@@ -9,7 +9,8 @@ description = "CLI/TUI manager for CloakBrowser — create, manage, and launch s
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
-authors = [{name = "CloakBrowser Manager Contributors"}]
+authors = [{name = "laixuanthoi"}]
+urls = { repository = "https://github.com/laixuanthoi/cloakbrowser-manager-cli" }
 keywords = ["cloakbrowser", "browser", "antidetect", "cli", "tui"]
 classifiers = [
     "Development Status :: 3 - Alpha",
