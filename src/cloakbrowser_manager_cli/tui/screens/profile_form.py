@@ -32,7 +32,7 @@ class ProfileFormScreen(ModalScreen[dict | None]):
         with VerticalScroll(id="modal"):
             yield Static(f"[bold]{title}[/bold]", id="modal-title")
 
-            with TabbedContent(initial="basic", id="profile-form-tabs"):
+            with TabbedContent(id="profile-form-tabs"):
                 with TabPane("Basic", id="basic"):
                     yield Label("Name")
                     yield Input(value=p.get("name", ""), placeholder="Profile name", id="name")

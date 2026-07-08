@@ -282,8 +282,8 @@ with sync_playwright() as pw:
 
 | Key | Action |
 |---|---|
-| `n` | New profile |
-| `e` | Edit selected, including advanced settings |
+| `n` | New profile in the detail panel |
+| `e` | Focus inline profile editor |
 | `d` | Delete selected |
 | `x` | Clone selected |
 | `l` | Launch selected |

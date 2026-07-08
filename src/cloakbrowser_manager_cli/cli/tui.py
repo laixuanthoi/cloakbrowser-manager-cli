@@ -15,8 +15,8 @@ def tui(ctx: CLIContext):
 
     \b
     Keybindings:
-      n     New profile
-      e     Edit selected profile, including advanced settings
+      n     New profile in the detail panel
+      e     Focus inline profile editor
       d     Delete selected profile
       x     Clone selected profile
       l     Launch selected profile

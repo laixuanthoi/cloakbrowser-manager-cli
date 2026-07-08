@@ -1,24 +1,11 @@
 from cloakbrowser_manager_cli.tui.app import DashboardScreen
 from cloakbrowser_manager_cli.tui.screens.api_server import ApiServerScreen
-from cloakbrowser_manager_cli.tui.screens.profile_form import (
-    ProfileFormScreen,
+from cloakbrowser_manager_cli.tui.widgets.profile_detail import (
+    ProfileDetail,
     _parse_csv,
     _parse_fingerprint_noise,
     _parse_optional_int,
 )
-from cloakbrowser_manager_cli.tui.widgets.profile_detail import ProfileDetail
-
-
-def test_profile_form_screen_imports():
-    profile = {
-        "id": "p1",
-        "name": "Profile",
-        "extension_paths": [],
-        "stealth_args": True,
-        "fingerprint_mode": "normal",
-    }
-    screen = ProfileFormScreen(profile)
-    assert screen is not None
 
 
 def test_dashboard_has_advanced_binding():
@@ -69,7 +56,7 @@ def test_profile_form_parsers():
     assert _parse_fingerprint_noise("false") is False
 
 
-def test_profile_detail_advanced_summary_renders():
+def test_profile_detail_inline_editor_accepts_profile_before_mount():
     widget = ProfileDetail()
     widget.show_profile({
         "id": "abcdef123456",
@@ -79,10 +66,8 @@ def test_profile_detail_advanced_summary_renders():
         "screen_width": 1920,
         "screen_height": 1080,
         "humanize": True,
-        "human_preset": "default",
         "headless": False,
         "geoip": False,
-        "fingerprint_seed": 12345,
         "browser_version": "148.0.0.0",
         "extension_paths": ["/ext"],
         "stealth_args": True,
@@ -93,11 +78,5 @@ def test_profile_detail_advanced_summary_renders():
         "fingerprint_noise": None,
         "tags": [],
     })
-    rendered = str(widget.renderable)
-    assert "Runtime" in rendered
-    assert "Identity" in rendered
-    assert "Network" in rendered
-    assert "Browser" in rendered
-    assert "Storage" in rendered
-    assert "Version" in rendered
-    assert "148.0.0.0" in rendered
+    assert widget._profile["name"] == "Profile"
+    assert widget._create_mode is False
