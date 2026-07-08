@@ -13,6 +13,7 @@ from click.testing import CliRunner
 
 from cloakbrowser_manager_cli.cli.main import cli
 from cloakbrowser_manager_cli.core import database as db
+from cloakbrowser_manager_cli.core import config as cfg
 
 
 @pytest.fixture
@@ -457,10 +458,14 @@ def test_config_show(runner):
 
 def test_config_set(runner):
     result = runner.invoke(cli, ["config", "set", "--log-level", "debug"])
-    # Note: may fail due to CLIContext iterability issue in Click's
-    # CliRunner when @pass_context decorator is used with **kwargs.
-    # The command works fine from the real CLI.
-    assert result.exit_code != 2  # exit 2 = Click parse error, anything else is OK
+    assert result.exit_code == 0, result.output
+
+
+def test_config_set_data_dir(runner, tmp_path):
+    data_dir = tmp_path / "manager-data"
+    result = runner.invoke(cli, ["config", "set", "--data-dir", str(data_dir)])
+    assert result.exit_code == 0, result.output
+    assert str(data_dir.resolve()) in cfg._config_path().read_text()
 
 
 def test_config_get(runner):

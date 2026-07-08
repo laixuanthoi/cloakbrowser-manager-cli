@@ -45,6 +45,17 @@ def test_update_config(temp_home):
     assert cfg2.log_level == "debug"
 
 
+def test_update_config_does_not_persist_env_data_dir(temp_home, monkeypatch, tmp_path):
+    temp_data = tmp_path / "session-data"
+    monkeypatch.setenv("CM_DATA_DIR", str(temp_data))
+
+    config.update_config(log_level="debug")
+    raw = config._config_path().read_text()
+
+    assert str(temp_data) not in raw
+    assert config.load_config().data_dir == str(temp_data.resolve())
+
+
 def test_get_config_value(temp_home):
     val = config.get_config_value("cdp_port_start")
     assert val == 5100

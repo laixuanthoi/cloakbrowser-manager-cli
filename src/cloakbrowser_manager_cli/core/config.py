@@ -119,13 +119,37 @@ def save_config(config: ManagerConfig) -> None:
 
 
 def update_config(**kwargs: Any) -> ManagerConfig:
-    """Update specific config keys and save."""
+    """Update specific config keys and save.
+
+    A process-level ``CM_DATA_DIR`` override is intentionally not persisted
+    unless ``data_dir`` is explicitly updated. This prevents test/temp data
+    dirs from being accidentally written into the user's real config.
+    """
     config = load_config()
+    explicit_data_dir = "data_dir" in kwargs
     for key, val in kwargs.items():
         if hasattr(config, key):
             setattr(config, key, val)
+
+    if not explicit_data_dir and os.environ.get("CM_DATA_DIR"):
+        config.data_dir = _file_config_data_dir() or str(Path.home() / ".cloakbrowser-manager")
+
     save_config(config)
     return config
+
+
+def _file_config_data_dir() -> str | None:
+    """Return data_dir from config file only, ignoring env overrides."""
+    config_path = _config_path()
+    if not config_path.exists():
+        return None
+    try:
+        with open(config_path) as f:
+            data = yaml.safe_load(f) or {}
+        value = data.get("data_dir")
+        return str(value) if value else None
+    except Exception:
+        return None
 
 
 def get_config_value(key: str, default: Any = None) -> Any:

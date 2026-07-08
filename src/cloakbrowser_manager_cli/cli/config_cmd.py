@@ -1,6 +1,7 @@
 """CLI commands for global configuration."""
 
 import os
+from pathlib import Path
 
 import click
 from cloakbrowser_manager_cli.cli.main import cli, pass_context, CLIContext
@@ -40,6 +41,7 @@ def _print_config(ctx: CLIContext) -> None:
 
 
 @config.command("set")
+@click.option("--data-dir", type=click.Path(path_type=Path), help="Persistent manager data directory")
 @click.option("--cdp-port-start", type=int, help="Start of CDP port range")
 @click.option("--cdp-port-range", type=int, help="Number of ports in CDP range")
 @click.option(
@@ -59,7 +61,7 @@ def _print_config(ctx: CLIContext) -> None:
 @pass_context
 def config_set(ctx: CLIContext, **kwargs):
     """Update configuration values. Only specified options are changed."""
-    updates = {k: v for k, v in kwargs.items() if v is not None}
+    updates = {k: str(v.expanduser().resolve()) if k == "data_dir" else v for k, v in kwargs.items() if v is not None}
     if not updates:
         click.echo("No changes specified. See 'cm config set --help'.")
         return
