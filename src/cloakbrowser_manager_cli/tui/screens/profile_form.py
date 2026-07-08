@@ -5,7 +5,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select, Static, Switch, TabbedContent, TabPane
+from textual.widgets import Button, Input, Label, Select, Static, Switch
 
 SCREEN_SIZE_OPTIONS = [
     (1280, 720),
@@ -19,7 +19,7 @@ SCREEN_SIZE_OPTIONS = [
 
 
 class ProfileFormScreen(ModalScreen[dict | None]):
-    """Create/edit profile form with basic and advanced settings in tabs."""
+    """Create/edit profile form with basic and advanced settings together."""
 
     def __init__(self, profile: dict | None = None):
         super().__init__()
@@ -32,154 +32,129 @@ class ProfileFormScreen(ModalScreen[dict | None]):
         with VerticalScroll(id="modal"):
             yield Static(f"[bold]{title}[/bold]", id="modal-title")
 
-            with TabbedContent(initial="basic", id="profile-form-tabs"):
-                with TabPane("Basic", id="basic"):
-                    yield Label("Name")
-                    yield Input(value=p.get("name", ""), placeholder="Profile name", id="name")
+            yield Static("[bold cyan]Basic[/bold cyan]")
+            yield Label("Name")
+            yield Input(value=p.get("name", ""), placeholder="Profile name", id="name")
 
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Platform")
-                            yield Select(
-                                [("Windows", "windows"), ("macOS", "macos"), ("Linux", "linux")],
-                                value=p.get("platform", "windows"),
-                                id="platform",
-                            )
-                        with Vertical():
-                            yield Label("Screen Size")
-                            screen_size = _format_screen_size(
-                                int(p.get("screen_width", 1920) or 1920),
-                                int(p.get("screen_height", 1080) or 1080),
-                            )
-                            yield Select(
-                                _screen_size_options(SCREEN_SIZE_OPTIONS, screen_size),
-                                value=screen_size,
-                                id="screen_size",
-                            )
+            with Horizontal():
+                with Vertical():
+                    yield Label("Platform")
+                    yield Select(
+                        [("Windows", "windows"), ("macOS", "macos"), ("Linux", "linux")],
+                        value=p.get("platform", "windows"),
+                        id="platform",
+                    )
+                with Vertical():
+                    yield Label("Screen Size")
+                    screen_size = _format_screen_size(
+                        int(p.get("screen_width", 1920) or 1920),
+                        int(p.get("screen_height", 1080) or 1080),
+                    )
+                    yield Select(_screen_size_options(SCREEN_SIZE_OPTIONS, screen_size), value=screen_size, id="screen_size")
 
-                    with Horizontal():
-                        yield Label("Humanize")
-                        yield Switch(value=bool(p.get("humanize", False)), id="humanize")
-                        yield Label("Headless")
-                        yield Switch(value=bool(p.get("headless", False)), id="headless")
-                        yield Label("GeoIP")
-                        yield Switch(value=bool(p.get("geoip", False)), id="geoip")
+            with Horizontal():
+                yield Label("Humanize")
+                yield Switch(value=bool(p.get("humanize", False)), id="humanize")
+                yield Label("Headless")
+                yield Switch(value=bool(p.get("headless", False)), id="headless")
+                yield Label("GeoIP")
+                yield Switch(value=bool(p.get("geoip", False)), id="geoip")
 
-                with TabPane("Network", id="network"):
-                    yield Label("Proxy")
-                    yield Input(
-                        value=p.get("proxy") or "",
-                        placeholder="http://user:pass@host:port or host:port",
-                        id="proxy",
+            yield Static("[bold cyan]Network[/bold cyan]")
+            yield Label("Proxy")
+            yield Input(value=p.get("proxy") or "", placeholder="http://user:pass@host:port or host:port", id="proxy")
+
+            with Horizontal():
+                with Vertical():
+                    yield Label("Timezone")
+                    yield Input(value=p.get("timezone") or "", placeholder="America/New_York", id="timezone")
+                with Vertical():
+                    yield Label("Locale")
+                    yield Input(value=p.get("locale") or "", placeholder="en-US", id="locale")
+
+            yield Label("WebRTC IP")
+            yield Input(value=p.get("webrtc_ip") or "", placeholder="auto or explicit IP", id="webrtc_ip")
+
+            yield Static("[bold cyan]Browser[/bold cyan]")
+            with Horizontal():
+                with Vertical():
+                    yield Label("Browser Version")
+                    yield Input(value=p.get("browser_version") or "", placeholder="auto", id="browser_version")
+                with Vertical():
+                    yield Label("Stealth Args")
+                    yield Switch(value=bool(p.get("stealth_args", True)), id="stealth_args")
+
+            yield Label("Extension Paths (comma-separated)")
+            yield Input(value=", ".join(p.get("extension_paths") or []), id="extension_paths")
+
+            yield Static("[bold cyan]Fingerprint[/bold cyan]")
+            with Horizontal():
+                with Vertical():
+                    yield Label("Device Memory (GB)")
+                    yield Input(value=_display_optional_int(p.get("device_memory")), placeholder="auto", id="device_memory")
+                with Vertical():
+                    yield Label("Storage Quota (MB)")
+                    yield Input(value=_display_optional_int(p.get("storage_quota")), placeholder="auto", id="storage_quota")
+
+            with Horizontal():
+                with Vertical():
+                    yield Label("Brand")
+                    yield Input(value=p.get("brand") or "", placeholder="auto", id="brand")
+                with Vertical():
+                    yield Label("Brand Version")
+                    yield Input(value=p.get("brand_version") or "", placeholder="auto", id="brand_version")
+
+            with Horizontal():
+                with Vertical():
+                    yield Label("Platform Version")
+                    yield Input(value=p.get("platform_version") or "", placeholder="auto", id="platform_version")
+                with Vertical():
+                    yield Label("Location")
+                    yield Input(value=p.get("location") or "", placeholder="lat,long", id="location")
+
+            with Horizontal():
+                with Vertical():
+                    yield Label("Taskbar Height")
+                    yield Input(value=_display_optional_int(p.get("taskbar_height")), placeholder="auto", id="taskbar_height")
+                with Vertical():
+                    yield Label("Fingerprint Mode")
+                    yield Select(
+                        [("Normal", "normal"), ("Off / pass-through", "off")],
+                        value=p.get("fingerprint_mode") or "normal",
+                        id="fingerprint_mode",
                     )
 
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Timezone")
-                            yield Input(value=p.get("timezone") or "", placeholder="America/New_York", id="timezone")
-                        with Vertical():
-                            yield Label("Locale")
-                            yield Input(value=p.get("locale") or "", placeholder="en-US", id="locale")
-
-                    yield Label("WebRTC IP")
-                    yield Input(value=p.get("webrtc_ip") or "", placeholder="auto or explicit IP", id="webrtc_ip")
-
-                with TabPane("Browser", id="browser"):
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Browser Version")
-                            yield Input(value=p.get("browser_version") or "", placeholder="auto", id="browser_version")
-                        with Vertical():
-                            yield Label("Stealth Args")
-                            yield Switch(value=bool(p.get("stealth_args", True)), id="stealth_args")
-
-                    yield Label("Extension Paths (comma-separated)")
-                    yield Input(value=", ".join(p.get("extension_paths") or []), id="extension_paths")
-
-                with TabPane("Fingerprint", id="fingerprint"):
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Device Memory (GB)")
-                            yield Input(
-                                value=_display_optional_int(p.get("device_memory")),
-                                placeholder="auto",
-                                id="device_memory",
-                            )
-                        with Vertical():
-                            yield Label("Storage Quota (MB)")
-                            yield Input(
-                                value=_display_optional_int(p.get("storage_quota")),
-                                placeholder="auto",
-                                id="storage_quota",
-                            )
-
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Brand")
-                            yield Input(value=p.get("brand") or "", placeholder="auto", id="brand")
-                        with Vertical():
-                            yield Label("Brand Version")
-                            yield Input(value=p.get("brand_version") or "", placeholder="auto", id="brand_version")
-
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Platform Version")
-                            yield Input(value=p.get("platform_version") or "", placeholder="auto", id="platform_version")
-                        with Vertical():
-                            yield Label("Location")
-                            yield Input(value=p.get("location") or "", placeholder="lat,long", id="location")
-
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Taskbar Height")
-                            yield Input(
-                                value=_display_optional_int(p.get("taskbar_height")),
-                                placeholder="auto",
-                                id="taskbar_height",
-                            )
-                        with Vertical():
-                            yield Label("Fingerprint Mode")
-                            yield Select(
-                                [("Normal", "normal"), ("Off / pass-through", "off")],
-                                value=p.get("fingerprint_mode") or "normal",
-                                id="fingerprint_mode",
-                            )
-
-                    with Horizontal():
-                        with Vertical():
-                            yield Label("Fingerprint Noise")
-                            yield Select(
-                                [("Auto", "auto"), ("Enabled", "true"), ("Disabled", "false")],
-                                value=_fingerprint_noise_value(p.get("fingerprint_noise")),
-                                id="fingerprint_noise",
-                            )
-                        with Vertical():
-                            yield Label("Fonts Dir")
-                            yield Input(value=p.get("fonts_dir") or "", placeholder="/path/to/fonts", id="fonts_dir")
-
-                with TabPane("Compat", id="compat"):
-                    with Horizontal():
-                        yield Label("Windows Font Metrics")
-                        yield Switch(value=bool(p.get("windows_font_metrics", False)), id="windows_font_metrics")
-                        yield Label("3P Cookies")
-                        yield Switch(value=bool(p.get("allow_3p_cookies", False)), id="allow_3p_cookies")
-
-                    with Horizontal():
-                        yield Label("License Through Proxy")
-                        yield Switch(value=bool(p.get("license_through_proxy", False)), id="license_through_proxy")
-                        yield Label("Widevine")
-                        yield Switch(value=bool(p.get("widevine_enabled", False)), id="widevine_enabled")
-
-                with TabPane("Notes", id="notes-tab"):
-                    yield Label("Tags (comma-separated)")
-                    yield Input(
-                        value=", ".join(t["tag"] for t in p.get("tags", [])),
-                        placeholder="gmail, work, production",
-                        id="tags",
+            with Horizontal():
+                with Vertical():
+                    yield Label("Fingerprint Noise")
+                    yield Select(
+                        [("Auto", "auto"), ("Enabled", "true"), ("Disabled", "false")],
+                        value=_fingerprint_noise_value(p.get("fingerprint_noise")),
+                        id="fingerprint_noise",
                     )
+                with Vertical():
+                    yield Label("Fonts Dir")
+                    yield Input(value=p.get("fonts_dir") or "", placeholder="/path/to/fonts", id="fonts_dir")
 
-                    yield Label("Notes")
-                    yield Input(value=p.get("notes") or "", placeholder="Optional notes...", id="notes")
+            yield Static("[bold cyan]Compatibility[/bold cyan]")
+            with Horizontal():
+                yield Label("Windows Font Metrics")
+                yield Switch(value=bool(p.get("windows_font_metrics", False)), id="windows_font_metrics")
+                yield Label("3P Cookies")
+                yield Switch(value=bool(p.get("allow_3p_cookies", False)), id="allow_3p_cookies")
+
+            with Horizontal():
+                yield Label("License Through Proxy")
+                yield Switch(value=bool(p.get("license_through_proxy", False)), id="license_through_proxy")
+                yield Label("Widevine")
+                yield Switch(value=bool(p.get("widevine_enabled", False)), id="widevine_enabled")
+
+            yield Static("[bold cyan]Organization[/bold cyan]")
+            yield Label("Tags (comma-separated)")
+            yield Input(value=", ".join(t["tag"] for t in p.get("tags", [])), placeholder="gmail, work, production", id="tags")
+
+            yield Label("Notes")
+            yield Input(value=p.get("notes") or "", placeholder="Optional notes...", id="notes")
 
             with Horizontal(id="modal-buttons"):
                 yield Button("Create" if self._is_create else "Save", variant="primary", id="btn-save")
