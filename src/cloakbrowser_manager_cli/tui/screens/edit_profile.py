@@ -6,8 +6,17 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Static, Switch
 
 
-SCREEN_WIDTH_OPTIONS = [1366, 1440, 1536, 1600, 1920, 2560, 3440, 3840]
-SCREEN_HEIGHT_OPTIONS = [768, 900, 960, 1080, 1200, 1440, 1600, 2160]
+SCREEN_SIZE_OPTIONS = [
+    (1280, 720),
+    (1366, 768),
+    (1440, 900),
+    (1536, 864),
+    (1600, 900),
+    (1920, 1080),
+    (2560, 1440),
+    (3440, 1440),
+    (3840, 2160),
+]
 
 
 class EditProfileScreen(ModalScreen[dict | None]):
@@ -34,13 +43,12 @@ class EditProfileScreen(ModalScreen[dict | None]):
                         id="platform",
                     )
                 with Vertical():
-                    yield Label("Screen Width")
-                    screen_width = int(p.get("screen_width", 1920) or 1920)
-                    yield Select(_screen_options(SCREEN_WIDTH_OPTIONS, screen_width), value=screen_width, id="screen_width")
-                with Vertical():
-                    yield Label("Screen Height")
-                    screen_height = int(p.get("screen_height", 1080) or 1080)
-                    yield Select(_screen_options(SCREEN_HEIGHT_OPTIONS, screen_height), value=screen_height, id="screen_height")
+                    yield Label("Screen Size")
+                    screen_size = _format_screen_size(
+                        int(p.get("screen_width", 1920) or 1920),
+                        int(p.get("screen_height", 1080) or 1080),
+                    )
+                    yield Select(_screen_size_options(SCREEN_SIZE_OPTIONS, screen_size), value=screen_size, id="screen_size")
 
             yield Label("Proxy")
             yield Input(value=p.get("proxy") or "", id="proxy", placeholder="http://proxy:8080")
@@ -74,8 +82,9 @@ class EditProfileScreen(ModalScreen[dict | None]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-save":
             name_val = self.query_one("#name", Input).value.strip()
-            screen_width = int(self.query_one("#screen_width", Select).value or 1920)
-            screen_height = int(self.query_one("#screen_height", Select).value or 1080)
+            screen_width, screen_height = _parse_screen_size(
+                str(self.query_one("#screen_size", Select).value or "1920x1080")
+            )
 
             result = {
                 "name": name_val,
@@ -108,6 +117,17 @@ def _parse_tags(raw: str) -> list[dict]:
     return [{"tag": t} for t in tags]
 
 
-def _screen_options(values: list[int], current: int | None = None) -> list[tuple[str, int]]:
-    options = sorted(set(values + ([current] if current else [])))
-    return [(str(value), value) for value in options]
+def _format_screen_size(width: int, height: int) -> str:
+    return f"{width}x{height}"
+
+
+def _screen_size_options(values: list[tuple[int, int]], current: str | None = None) -> list[tuple[str, str]]:
+    size_values = [_format_screen_size(width, height) for width, height in values]
+    if current and current not in size_values:
+        size_values.append(current)
+    return [(value.replace("x", "×"), value) for value in size_values]
+
+
+def _parse_screen_size(value: str) -> tuple[int, int]:
+    width, height = value.lower().replace("×", "x").split("x", 1)
+    return int(width), int(height)
