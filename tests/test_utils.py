@@ -9,6 +9,11 @@ def test_get_os():
     assert os_name in ("windows", "macos", "linux")
 
 
+def test_suppress_windows_asyncio_transport_finalizer_tracebacks_is_idempotent():
+    utils.suppress_windows_asyncio_transport_finalizer_tracebacks()
+    utils.suppress_windows_asyncio_transport_finalizer_tracebacks()
+
+
 def test_normalize_proxy_none():
     assert utils.normalize_proxy(None) is None
     assert utils.normalize_proxy("") is None

@@ -437,6 +437,59 @@ def test_launch_help(runner):
     assert result.exit_code == 0
 
 
+def test_launch_spawns_worker_and_records_worker_pid(runner, monkeypatch):
+    create = runner.invoke(cli, ["profile", "create", "worker-launch"])
+    assert create.exit_code == 0
+    profile = db.find_profile("worker-launch")
+
+    class FakeWorker:
+        pid = 4242
+
+        def poll(self):
+            return None
+
+    import cloakbrowser_manager_cli.cli.launch as launch_mod
+
+    def fake_wait(profile_id, worker):
+        db.update_profile(profile_id, status="running", cdp_port=5101, pid=None)
+        return db.get_profile(profile_id)
+
+    monkeypatch.setattr(launch_mod, "_spawn_launch_worker", lambda ctx, profile_id, overrides: FakeWorker())
+    monkeypatch.setattr(launch_mod, "_wait_for_worker_launch", fake_wait)
+
+    result = runner.invoke(cli, ["launch", "worker-launch"])
+
+    assert result.exit_code == 0
+    assert "CDP: http://127.0.0.1:5101" in result.output
+    updated = db.find_profile("worker-launch")
+    assert updated["pid"] == 4242
+    assert updated["status"] == "running"
+
+
+def test_launch_wait_for_worker_requires_cdp_ready(monkeypatch):
+    profile = db.create_profile("wait-ready")
+    db.update_profile(profile["id"], status="running", cdp_port=5101)
+
+    class FakeWorker:
+        returncode = None
+
+        def poll(self):
+            return None
+
+    class FakeCDP:
+        def health_check_sync(self, port, timeout=5.0):
+            assert port == 5101
+            return True
+
+    import cloakbrowser_manager_cli.cli.launch as launch_mod
+    monkeypatch.setattr(launch_mod, "get_cdp_manager", lambda: FakeCDP())
+
+    result = launch_mod._wait_for_worker_launch(profile["id"], FakeWorker())
+
+    assert result["status"] == "running"
+    assert result["cdp_port"] == 5101
+
+
 def test_stop_help(runner):
     result = runner.invoke(cli, ["stop", "--help"])
     assert result.exit_code == 0

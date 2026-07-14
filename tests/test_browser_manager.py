@@ -146,6 +146,27 @@ def test_stop_not_found(mgr):
         asyncio.run(mgr.stop("nonexistent"))
 
 
+def test_stop_kills_recorded_process_when_context_unavailable(mgr):
+    p = db.create_profile("worker-owned")
+    db.update_profile(p["id"], status="running", pid=4242, cdp_port=5101)
+
+    alive_calls = []
+
+    def fake_alive(pid):
+        alive_calls.append(pid)
+        return len(alive_calls) <= 2
+
+    with patch.object(mgr, "_is_process_alive", side_effect=fake_alive):
+        with patch.object(mgr, "_kill_process") as kill:
+            asyncio.run(mgr.stop(p["id"]))
+
+    kill.assert_called_once_with(4242)
+    updated = db.get_profile(p["id"])
+    assert updated["status"] == "stopped"
+    assert updated["pid"] is None
+    assert updated["cdp_port"] is None
+
+
 def test_launch_passes_advanced_kwargs(mgr):
     p = db.create_profile(
         "advanced-launch",
@@ -170,6 +191,42 @@ def test_launch_passes_advanced_kwargs(mgr):
     assert kwargs["extension_paths"] == ["/ext/a"]
     assert kwargs["browser_version"] == "148.0.7778.215.5"
     assert kwargs["stealth_args"] is False
+
+
+def test_headed_viewport_subtracts_chrome_offset(mgr):
+    p = db.create_profile(
+        "headed-screen",
+        platform="windows",
+        screen_width=1920,
+        screen_height=1080,
+        headless=False,
+    )
+
+    mock_cloak = MagicMock()
+    mock_cloak.launch_persistent_context_async = AsyncMock(side_effect=lambda **kwargs: kwargs)
+
+    with patch.dict("sys.modules", {"cloakbrowser": mock_cloak}):
+        kwargs = asyncio.run(mgr._launch_browser(p, 5101))
+
+    assert kwargs["viewport"] == {"width": 1920, "height": 1007}
+
+
+def test_headless_viewport_uses_full_screen_size(mgr):
+    p = db.create_profile(
+        "headless-screen",
+        platform="windows",
+        screen_width=1920,
+        screen_height=1080,
+        headless=True,
+    )
+
+    mock_cloak = MagicMock()
+    mock_cloak.launch_persistent_context_async = AsyncMock(side_effect=lambda **kwargs: kwargs)
+
+    with patch.dict("sys.modules", {"cloakbrowser": mock_cloak}):
+        kwargs = asyncio.run(mgr._launch_browser(p, 5101))
+
+    assert kwargs["viewport"] == {"width": 1920, "height": 1080}
 
 
 def test_launch_stale_pid(mgr):

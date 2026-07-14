@@ -16,6 +16,7 @@ from rich.table import Table
 from cloakbrowser_manager_cli import _version
 from cloakbrowser_manager_cli.core import config as cfg
 from cloakbrowser_manager_cli.core import database as db
+from cloakbrowser_manager_cli.core import utils
 
 
 # ── Shared Output Helpers ────────────────────────────────────────────────────
@@ -144,6 +145,8 @@ def cli(ctx: CLIContext, data_dir: Path | None, output_format: str, verbose: boo
       cm launch my-profile
       cm tui
     """
+    utils.suppress_windows_asyncio_transport_finalizer_tracebacks()
+
     ctx.output = OutputFormatter(output_format or "table")
     ctx.verbose = verbose
 

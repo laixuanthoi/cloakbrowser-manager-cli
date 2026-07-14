@@ -14,6 +14,52 @@ from urllib.parse import urlparse
 
 # ── Platform ─────────────────────────────────────────────────────────────────
 
+_WINDOWS_ASYNCIO_DEL_PATCHED = False
+
+
+def suppress_windows_asyncio_transport_finalizer_tracebacks() -> None:
+    """Suppress noisy Windows asyncio Proactor shutdown tracebacks.
+
+    Playwright/CloakBrowser uses asyncio subprocess transports on Windows. When
+    a command exits after closing or orphaning those transports, CPython can
+    print ignored-exception tracebacks from transport ``__del__`` methods such
+    as ``ValueError: I/O operation on closed pipe`` or
+    ``RuntimeError: Event loop is closed``. These finalizer tracebacks happen
+    during interpreter shutdown and do not indicate that the CLI command failed.
+
+    Keep this patch narrow: Windows only, affected asyncio finalizers only, and
+    only swallow the known shutdown-noise messages.
+    """
+    global _WINDOWS_ASYNCIO_DEL_PATCHED
+    if _WINDOWS_ASYNCIO_DEL_PATCHED or sys.platform != "win32":
+        return
+
+    try:
+        from asyncio import base_subprocess, proactor_events
+    except Exception:
+        return
+
+    def wrap(cls):
+        original = getattr(cls, "__del__", None)
+        if original is None or getattr(original, "_cm_asyncio_shutdown_noise_suppressed", False):
+            return
+
+        def safe_del(self):
+            try:
+                original(self)
+            except (RuntimeError, ValueError) as exc:
+                message = str(exc)
+                if "I/O operation on closed pipe" not in message and "Event loop is closed" not in message:
+                    raise
+
+        safe_del._cm_asyncio_shutdown_noise_suppressed = True  # type: ignore[attr-defined]
+        cls.__del__ = safe_del
+
+    wrap(proactor_events._ProactorBasePipeTransport)
+    wrap(base_subprocess.BaseSubprocessTransport)
+    _WINDOWS_ASYNCIO_DEL_PATCHED = True
+
+
 def get_os() -> str:
     """Return standardized OS name: 'windows', 'macos', or 'linux'."""
     system = platform.system().lower()

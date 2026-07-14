@@ -157,10 +157,15 @@ class BrowserManager:
         if license_key:
             launch_kwargs["license_key"] = license_key
 
-        # Viewport: subtract OS chrome height
-        chrome_offset = 73 if profile.get("platform") == "windows" else 53
-        if profile.get("platform") == "macos":
-            chrome_offset = 28
+        # Viewport: subtract OS/browser chrome height only for headed windows.
+        # Headless has no native window chrome, so keep the viewport equal to the
+        # configured screen size for coherent dimensions.
+        if launch_kwargs["headless"]:
+            chrome_offset = 0
+        else:
+            chrome_offset = 73 if profile.get("platform") == "windows" else 53
+            if profile.get("platform") == "macos":
+                chrome_offset = 28
         launch_kwargs["viewport"] = {
             "width": screen_w,
             "height": screen_h - chrome_offset,
@@ -208,6 +213,11 @@ class BrowserManager:
                 except asyncio.TimeoutError:
                     logger.warning("Graceful close timed out for '%s'", profile["name"])
                     force = True
+            elif not context and pid and self._is_process_alive(pid):
+                # A browser launched by the fire-and-forget CLI is owned by a
+                # detached worker process, not this manager instance. Without a
+                # local context to close, stop the recorded process tree.
+                force = True
 
             if force and pid and self._is_process_alive(pid):
                 self._kill_process(pid)
@@ -435,7 +445,9 @@ class BrowserManager:
         """Force kill a process by PID."""
         try:
             if sys.platform == "win32":
-                subprocess.run(["taskkill", "/F", "/PID", str(pid)], check=False)
+                # /T is important for CLI-launched worker processes: the worker
+                # owns the Playwright driver and browser subprocess tree.
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], check=False)
             else:
                 os.kill(pid, signal.SIGKILL)
         except Exception as exc:
