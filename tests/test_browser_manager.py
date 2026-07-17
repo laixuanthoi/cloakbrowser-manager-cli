@@ -209,6 +209,7 @@ def test_headed_viewport_subtracts_chrome_offset(mgr):
         kwargs = asyncio.run(mgr._launch_browser(p, 5101))
 
     assert kwargs["viewport"] == {"width": 1920, "height": 1007}
+    assert "--window-size=1920,1080" in kwargs["args"]
 
 
 def test_headless_viewport_uses_full_screen_size(mgr):
@@ -227,6 +228,7 @@ def test_headless_viewport_uses_full_screen_size(mgr):
         kwargs = asyncio.run(mgr._launch_browser(p, 5101))
 
     assert kwargs["viewport"] == {"width": 1920, "height": 1080}
+    assert not any(arg.startswith("--window-size=") for arg in kwargs["args"])
 
 
 def test_launch_stale_pid(mgr):

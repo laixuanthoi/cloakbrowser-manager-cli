@@ -157,15 +157,23 @@ class BrowserManager:
         if license_key:
             launch_kwargs["license_key"] = license_key
 
-        # Viewport: subtract OS/browser chrome height only for headed windows.
-        # Headless has no native window chrome, so keep the viewport equal to the
-        # configured screen size for coherent dimensions.
+        # Viewport controls the page/fingerprint dimensions, but it does not
+        # consistently resize a headed native Chromium window. Set an explicit
+        # outer window size as well so edits to Screen Size take effect even when
+        # Chrome has a persisted window placement in the profile directory.
+        #
+        # Headless has no native window chrome, so keep its viewport at the full
+        # configured screen size and omit --window-size.
         if launch_kwargs["headless"]:
             chrome_offset = 0
         else:
             chrome_offset = 73 if profile.get("platform") == "windows" else 53
             if profile.get("platform") == "macos":
                 chrome_offset = 28
+            # Let the profile Screen Size win over any stale/custom launch arg.
+            extra_args = [arg for arg in extra_args if not arg.startswith("--window-size=")]
+            extra_args.append(f"--window-size={screen_w},{screen_h}")
+        launch_kwargs["args"] = extra_args
         launch_kwargs["viewport"] = {
             "width": screen_w,
             "height": screen_h - chrome_offset,
