@@ -30,7 +30,9 @@ class CodeSnippetScreen(ModalScreen[None]):
             )
 
             code = self._generate_code("python", cdp_url)
-            yield Static(code, id="code-block")
+            # Code contains square brackets (e.g. contexts[0]), which must not
+            # be parsed as Rich markup by Textual.
+            yield Static(code, markup=False, id="code-block")
 
             with Horizontal(id="modal-buttons"):
                 yield Button("Close", variant="default", id="btn-close")
